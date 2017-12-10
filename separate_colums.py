@@ -25,13 +25,14 @@ SVMLIN_PATH = "/Users/lijiechu/Documents/svmlin-v1.0/"
 
 # 执行tsvm
 def execute_tsvm():
-	train_cmd = SVMLIN_PATH + "svmlin " + TRAIN_FEATURES_CSV + " " + TRAIN_LABELS_CSV
+	train_cmd = SVMLIN_PATH + "svmlin -A 2 " + TRAIN_FEATURES_CSV + " " + TRAIN_LABELS_CSV
 	train_info = os.popen(train_cmd).readlines()
 	for line in train_info:
 		stripped_line = line.strip('\n')
 		print(stripped_line)
 
 	evaluate_cmd = SVMLIN_PATH + "svmlin -f train.features.weights " + TEST_FEATURES_CSV + " " + TEST_LABELS_CSV
+	print(evaluate_cmd)
 	evaluate_info = os.popen(evaluate_cmd).readlines()
 	for line in evaluate_info:
 		stripped_line = line.strip('\n')
@@ -95,8 +96,42 @@ def evaluation_results(true_csv, pred_csv, ploting=False, threshold=0.5):
 		plt.ylabel('True Positive Rate')  
 		plt.title('Receiver operating characteristic example') 
 		plt.show()
+	# accuracy = 0
+	# for i in range(len(true_values)):
+	# 	if(true_values[i] * pred_values[i] >0):
+	# 		accuracy = accuracy + 1
+	# print("Accuracy = %g" % (accuracy / len(true_values)))
+	pred_values = [1 if x > threshold else -1 for x in pred_values]
+	# p = 0
+	# tp = 0
+	# n = 0
+	# tn = 0
+	# for i in range(len(true_values)):
+	# 	if true_values[i] == -1:
+	# 		n = n + 1
+	# 		if pred_values[i] == -1:
+	# 			tn = tn + 1
+	# 	else:
+	# 		p = p + 1
+	# 		if pred_values[i] == 1:
+	# 			tp = tp + 1
+	# print("p is %d, tp is %d, n is %d, tn %d" % (p, tp, n, tn))
 
-	pred_values = [1 if x >= threshold else -1 for x in pred_values]
+	# p = 0
+	# tp = 0
+	# n = 0
+	# tn = 0
+	# for i in range(len(true_values)):
+	# 	if pred_values[i] == -1:
+	# 		n = n + 1
+	# 		if true_values[i] == -1:
+	# 			tn = tn + 1
+	# 	else:
+	# 		p = p + 1
+	# 		if true_values[i] == 1:
+	# 			tp = tp + 1
+	# print("p is %d, tp is %d, n is %d, tn %d" % (p, tp, n, tn))
+	
 	target_names = ['Non-Defective', 'Defective']
 	print(classification_report(true_values, pred_values, target_names=target_names))
 
@@ -111,4 +146,4 @@ if __name__ == "__main__":
 		execute_tsvm()
 	else:
 		# 评估数据集
-		evaluation_results(SVMLIN_PATH + "test.labels", SVMLIN_PATH + "test.features.outputs", False, 0.5)
+		evaluation_results(TEST_LABELS_CSV, "test.features.outputs", False, 0)
