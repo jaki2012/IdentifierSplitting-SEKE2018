@@ -6,6 +6,7 @@ import os
 import itertools
 from sklearn.metrics import classification_report
 from sklearn.metrics import roc_auc_score, roc_curve, auc
+from sklearn.decomposition import PCA  
 import matplotlib.pyplot as plt  
 
 # 训练集
