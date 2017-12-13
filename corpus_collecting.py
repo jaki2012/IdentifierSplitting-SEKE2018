@@ -31,8 +31,10 @@ def trick_on_dataset():
 	split_results = []
 	splitter = '_'
 	# 构造二元词组
-	for i in range(3 * num_of_cheat_words):
-		for j in range(3 * num_of_cheat_words):
+	# 将4000万的数据量变为约1000万
+	# 1000万数据依然能达到5.85GB
+	for i in range(0, 3 * num_of_cheat_words, 2):
+		for j in range(1, 3 * num_of_cheat_words, 2):
 			split = [0] * (len(modified_words[i]+modified_words[j]) - 1)
 			# 产生一个0到3的位置
 			random_position = random.randint(0,3)
@@ -65,11 +67,15 @@ def trick_on_dataset():
 				for k in range(spare):
 					compound_word = compound_word + ' '
 					split.append(0)
-				split_results.append([compound_words, splitted_words, list(''.join(list(compound_word))) , list(''.join(str(split))) ])
-				# 简易进度条
+				# split_results.append([compound_words, splitted_words, list(''.join(list(compound_word))) , list(''.join(str(split))) ])
+				words = []
+				words.append(compound_words)
+				words.append(splitted_words)
+				csvwriter.writerow(words + list(''.join(list(compound_word))) + split)		
+		# 简易进度条
 		print("进度: ======={0}%".format(round((i + 1) * 100 / (3*num_of_cheat_words))), end="\r")
 		time.sleep(0.01)
-	csvwriter.writerows(split_results)
+	# csvwriter.writerows(split_results)
 	# print(split_results)
 
 # https://github.com/first20hours/google-10000-english.git

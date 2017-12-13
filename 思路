@@ -1,0 +1,7 @@
+1. shuffle
+2. 先random拿到索引 再分开取
+3. 合并 随机sample 分开解耦
+
+4. SGD 50%词组数据 50%Oracle数据 
+5. 新型随机网络输入第一个表示1-2是否有数据在中字典中
+6. LSTM sequence标注 crf等
