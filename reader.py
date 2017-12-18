@@ -88,15 +88,11 @@ def ptb_producer(raw_data, batch_size, num_steps, name=None):
   Raises:
     tf.errors.InvalidArgumentError: if batch_size or num_steps are too high.
   """
+  # raw_data = tf.convert_to_tensor(raw_data, name="raw_data", dtype=tf.int32)
   with tf.name_scope(name, "PTBProducer", [raw_data, batch_size, num_steps]):
-    raw_data = tf.convert_to_tensor(raw_data, name="raw_data", dtype=tf.int32)
+    data_len = len(raw_data)
 
-    data_len = tf.size(raw_data)
-    batch_len = data_len // batch_size
-    data = tf.reshape(raw_data[0 : batch_size * batch_len],
-                      [batch_size, batch_len])
-
-    epoch_size = (batch_len - 1) // num_steps
+    epoch_size = data_len // num_steps
     assertion = tf.assert_positive(
         epoch_size,
         message="epoch_size == 0, decrease batch_size or num_steps")
@@ -104,10 +100,10 @@ def ptb_producer(raw_data, batch_size, num_steps, name=None):
       epoch_size = tf.identity(epoch_size, name="epoch_size")
 
     i = tf.train.range_input_producer(epoch_size, shuffle=False).dequeue()
-    x = tf.strided_slice(data, [0, i * num_steps],
-                         [batch_size, (i + 1) * num_steps])
+    sequence = raw_data[:, :25]
+    label = raw_data[:, -25:]
+    x = tf.strided_slice(sequence, [i * batch_size, 0], [(i+1) * batch_size, num_steps])
     x.set_shape([batch_size, num_steps])
-    y = tf.strided_slice(data, [0, i * num_steps + 1],
-                         [batch_size, (i + 1) * num_steps + 1])
+    y = tf.strided_slice(label, [i * batch_size, 0], [(i+1) * batch_size, num_steps])
     y.set_shape([batch_size, num_steps])
     return x, y

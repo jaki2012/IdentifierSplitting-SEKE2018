@@ -6,8 +6,8 @@ import numpy as np
 # read_table的默认分隔符为'\t'
 # 由于无法一次性将文件读取 故无法读取到文件的总行数
 # 可通过设置配置文件的方式来进行处理
-# reader = pd.read_table('tmp/cheat_splitting_file.csv', sep=',', header=None, chunksize=100000, iterator = True)
-# sample_csv = open('tmp/sample.csv', 'w', newline='')
+# reader = pd.read_table('tmp/cheat_splitting_file1.csv', sep=',', header=None, chunksize=100000, iterator = True)
+# sample_csv = open('tmp/sample1.csv', 'w', newline='')
 # csvwriter = csv.writer(sample_csv)
 # count = 1
 # for chunk in reader:
@@ -28,7 +28,20 @@ import numpy as np
 # # print(slice) 
 # print(X)
 
-a = [[1,2,3],[4,5,6]]
-b = [[7,8,9]]
+# a = [[1,2,3],[4,5,6]]
+# b = [[7,8,9]]
+# print(len(a))
+# print(np.row_stack([a,b]))
 
-print(np.row_stack([a,b]))
+import tensorflow as tf    
+x=tf.constant([[[1,3,2],[4,5,6],[7,8,9]]])    
+  
+xShape=tf.shape(x)  
+z1=tf.arg_max(x,2)#沿axis=0操作  
+  
+  
+with tf.Session() as sess:  
+    xShapeValue,d1=sess.run([xShape,z1])
+    print(sess.run(x))  
+    print('shape= %s'%(xShapeValue))  
+    print(d1)  

@@ -1,16 +1,103 @@
 from enchant.tokenize import get_tokenizer
 import pandas as pd
 import csv
-import time 
+import time
+import string
 import random
 
 tknzr = get_tokenizer("en_US")
 texts = [w for w in tknzr("thisissomesimpletext")]
 
 ORACLE_FILE = "/Users/lijiechu/Desktop/loyola-udelaware-identifier-splitting-oracle.txt"
+ORACLE_WORDS = "tmp/oracle_words.txt"
 GOOGLE_NORMAL_WORDS_FILE = "/Users/lijiechu/Documents/google-10000-english/google-10000-english-no-swears.txt"
 CHEAT_FILE = "tmp/cheat_file.csv"
 CHEAT_SPLITTING_FILE = "tmp/cheat_splitting_file.csv"
+
+
+
+def really_trick():
+	# print(string.letters)
+	# python 3.0写法
+	# print(list(string.ascii_letters))
+	# print(list(string.digits))
+	cheat_splitting_file_csv= open(CHEAT_SPLITTING_FILE, 'w', newline='')
+	csvwriter = csv.writer(cheat_splitting_file_csv)
+	distractors = ['.', ':', '_', '~']
+	distractors = distractors + list(string.ascii_letters) + list(string.digits)
+	all_lines = open(ORACLE_FILE).readlines()
+	all_words = []
+	for line in all_lines:
+		data = line.split(' ')
+		identifier = data[6]
+		words = identifier.split("-")
+		all_words = all_words + words
+	# 去除重复项 不过不会保持原来的顺序
+	all_words = list(set(all_words))
+	num_of_all_words = len(all_words)
+	modified_words = []
+	for word in all_words:
+		modified_words.append(word.lower())
+		modified_words.append(word.upper())
+		modified_words.append(word.capitalize())
+	random.shuffle(modified_words)
+	half = len(modified_words) // 2
+	for i in range(half):
+		split_position = random.randint(0,3)
+		splitter_index = random.randint(0,len(distractors)-1)
+		splitter = distractors[splitter_index]
+		split = ['M'] * (len(modified_words[i]+modified_words[2*i]))
+		leni = len(modified_words[i])
+		lenj = len(modified_words[2*i])
+		# TODO:需要用优雅的方式处理
+		# 方法一：利用字符串下标
+		# 利用统一式子
+		if split_position == 0:
+			compound_words = modified_words[i] + modified_words[2*i]
+			splitted_words = modified_words[i] + splitter + modified_words[2*i]
+			split[0] = 'B'
+			split[leni-1] = 'E'
+			split[leni] = 'B'
+			split[leni+lenj-1] = 'E'
+		elif split_position == 1:
+			split.append('E')
+			compound_words = splitter + modified_words[i] + modified_words[2*i]
+			splitted_words = splitter + splitter + modified_words[i] + modified_words[2*i]
+			split[0]='S'
+			split[1]='B'
+			split[leni]='E'
+			split[leni+1]='B'
+		elif split_position == 2:
+			split.append('E')
+			compound_words = modified_words[i] + splitter + modified_words[2*i]
+			splitted_words = modified_words[i] + splitter + splitter + splitter + modified_words[2*i]
+			split[0]='B'
+			split[leni-1]='E'
+			split[leni]='S'
+			split[leni+1]='B'
+		else:
+			split.append('S')
+			compound_words = modified_words[i] + modified_words[2*i] + splitter
+			splitted_words = modified_words[i] + splitter + modified_words[2*i] + splitter + splitter
+			split[0]='B'
+			split[leni-1]='E'
+			split[leni]='B'
+			split[leni+lenj-1]='E'
+		spare = 25 - len(compound_words)
+		if spare > 0 :
+			compound_word = compound_words
+			for k in range(spare):
+				compound_word = compound_word + ' '
+				split.append('N')
+			# split_results.append([compound_words, splitted_words, list(''.join(list(compound_word))) , list(''.join(str(split))) ])
+			words = []
+			words.append(compound_words)
+			words.append(splitted_words)
+			csvwriter.writerow(words + list(''.join(list(compound_word))) + split)	
+		# 简易进度条
+		print("进度: ======={0}%".format(round((i + 1) * 100 / half)), end="\r")
+		time.sleep(0.01)
+	# print(len(distractors))
 
 def trick_on_dataset():
 	cheat_splitting_file_csv= open(CHEAT_SPLITTING_FILE, 'w', newline='')
@@ -106,4 +193,5 @@ def preprocess_normal_english_words():
 
 if __name__ == '__main__':
 	# preprocess_normal_english_words()
-	trick_on_dataset()
+	# trick_on_dataset()
+	really_trick()
