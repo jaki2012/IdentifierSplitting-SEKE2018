@@ -15,8 +15,8 @@ RESULT_FILE = "tmp/final_result.csv"
 
 def cal_accuracy():
 	df = pd.read_csv("tmp/final_result.csv", header=None)
-	correct_answer = df.values[:, :1]
-	total_result = df.values[:, 2:]
+	correct_answer = df.values[:, :25]
+	total_result = df.values[:, 25:]
 	lenresults = total_result.shape[0]
 	labels = total_result[:, :25]
 	logits = total_result[:, 25:]
@@ -58,42 +58,96 @@ def cal_accuracy():
 	# 	print(''.join(list2))
 
 def vec2word():
+	# df = pd.read_csv("tmp/sample1.csv", header=None)
+	# total_dict = df.values[:, 2:]
+	# lendict = total_dict.shape[0]
+	# total_dict_list = list(itertools.chain.from_iterable(total_dict))
+	# le = LabelEncoder()
+	# le.fit(total_dict_list)
+
+	# # data to be inverse_transform()
+	# df1 = pd.read_csv("tmp/result1.csv", header=None)
+	# # 不能要2
+	# total_code = df1.values[:, :]
+	# lencode = total_code.shape[0]
+	# total_code_list = list(itertools.chain.from_iterable(total_code))
+	# le_total_code_list = le.inverse_transform(total_code_list)
+	# le_total_code = np.array(le_total_code_list).reshape(lencode,50)
+
+	# final_result = np.column_stack((df.values[8699:, :2], le_total_code))
 	df = pd.read_csv("tmp/sample1.csv", header=None)
-	total_dict = df.values[:, 2:]
-	lendict = total_dict.shape[0]
+	total_dict = df.values[:, 2:27]
 	total_dict_list = list(itertools.chain.from_iterable(total_dict))
-	le = LabelEncoder()
-	le.fit(total_dict_list)
-
-	# data to be inverse_transform()
-	df1 = pd.read_csv("tmp/result1.csv", header=None)
-	# 不能要2
-	total_code = df1.values[:, :]
-	lencode = total_code.shape[0]
-	total_code_list = list(itertools.chain.from_iterable(total_code))
-	le_total_code_list = le.inverse_transform(total_code_list)
-	le_total_code = np.array(le_total_code_list).reshape(lencode,50)
-
-	final_result = np.column_stack((df.values[8699:, :2], le_total_code))
+	sr_allwords = pd.Series(total_dict_list)
+	sr_allwords = sr_allwords.value_counts()
+	set_words = sr_allwords.index
+	set_ids = range(0, len(set_words))
+	tags = [ 'N', 'B', 'M', 'E', 'S']
+	tag_ids = range(len(tags))
+	word2id = pd.Series(set_ids, index=set_words)
+	id2word = pd.Series(set_words, index=set_ids)
+	tag2id = pd.Series(tag_ids, index=tags)
+	id2tag = pd.Series(tags, index=tag_ids)
 
 	result_csv = open(RESULT_FILE, 'w', newline='')
 	csvwriter = csv.writer(result_csv)
-	csvwriter.writerows(final_result)
+	
+	df1 = pd.read_csv("tmp/others_biLSTMResult.csv", header=None)
+	lendict = df1.values.shape[0]
+	total_word_id_list = list(itertools.chain.from_iterable(df1.values[:, :25]))
+	total_tag_id_list = list(itertools.chain.from_iterable(df1.values[:, 25:50]))
+	total_tag_id_list1 = list(itertools.chain.from_iterable(df1.values[:, 50:]))
+	words = coding(total_word_id_list, id2word)
+	tags = coding(total_tag_id_list, id2tag)
+	tags1 = coding(total_tag_id_list1, id2tag)
+	csvwriter.writerows(np.column_stack((
+		np.array(words).reshape(lendict,25), 
+		np.array(tags).reshape(lendict,25), 
+		np.array(tags1).reshape(lendict,25))))
+	# csvwriter.writerows(final_result)
 
-def word2vec():
+def word2vec(dict_way=False):
 	coded_file = open(CODED_FILE, 'w', newline='')
 	csvwriter = csv.writer(coded_file)
 	df = pd.read_csv("tmp/sample1.csv", header=None)
-	total_dict = df.values[:, 2:]
-	lendict = total_dict.shape[0]
-	total_dict_list = list(itertools.chain.from_iterable(total_dict))
-	le = LabelEncoder()
-	le.fit(total_dict_list)
-	#获取vocabsize
-	print(len(le.classes_))
-	le_total_dict_list = le.transform(total_dict_list)
-	le_total_dict = np.array(le_total_dict_list).reshape(lendict,50)
-	csvwriter.writerows(le_total_dict)
+	if dict_way:
+		total_dict = df.values[:, 2:]
+		lendict = total_dict.shape[0]
+		total_dict_list = list(itertools.chain.from_iterable(total_dict))
+		le = LabelEncoder()
+		le.fit(total_dict_list)
+		#获取vocabsize
+		print(len(le.classes_))
+		le_total_dict_list = le.transform(total_dict_list)
+		le_total_dict = np.array(le_total_dict_list).reshape(lendict,50)
+		csvwriter.writerows(le_total_dict)
+	else:
+		total_dict = df.values[:, 2:27]
+		lendict = total_dict.shape[0]
+		total_dict_list = list(itertools.chain.from_iterable(total_dict))
+		sr_allwords = pd.Series(total_dict_list)
+		sr_allwords = sr_allwords.value_counts()
+		#  --> 67
+		# print(sr_allwords)
+		set_words = sr_allwords.index
+		set_ids = range(0, len(set_words))
+		tags = [ 'N', 'B', 'M', 'E', 'S']
+		tag_ids = range(len(tags))
+		word2id = pd.Series(set_ids, index=set_words)
+		# print(word2id)
+		id2word = pd.Series(set_words, index=set_ids)
+		tag2id = pd.Series(tag_ids, index=tags)
+		id2tag = pd.Series(tags, index=tag_ids)
+		# list1 = df.iloc[:, 2:].applymap(coding, args=(word2id))
+		word_ids = coding(total_dict_list, word2id)
+		total_tag_list = list(itertools.chain.from_iterable(df.values[:, 27:52]))
+		tag_ids = coding(total_tag_list, tag2id)
+		# print(tag_ids[:400])
+		csvwriter.writerows(np.column_stack((np.array(word_ids).reshape(lendict,25), np.array(tag_ids).reshape(lendict,25))))
+
+def coding(words, projection):
+	ids = list(projection[words])
+	return ids
 
 def trick_on_dataset():
 	cheat_splitting_file_csv= open(CHEAT_SPLITTING_FILE, 'w', newline='')
@@ -172,6 +226,6 @@ def trick_on_dataset():
 	# print(split_results)
 if __name__ == '__main__':
 	# word2vec()
-	# vec2word()
+	vec2word()
 	cal_accuracy()
 	# trick_on_dataset()

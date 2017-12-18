@@ -72,14 +72,6 @@ class PTBModel(object):
 		self._input_data = tf.placeholder(tf.int32, [batch_size, num_steps])
 		self._targets = tf.placeholder(tf.int32,[batch_size, num_steps])
 
-		lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(size, forget_bias=0.0, state_is_tuple=True)
-		if is_trainning and config.keep_prob < 1:
-			lstm_cell = tf.nn.rnn_cell.DropoutWrpper(
-				lstm_cell, output_keep_prob=config.keep_prob)
-		# 多层lstm单元叠加起来
-		cell = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * config.num_layers, state_is_tuple=True)
-		self._initial_state = cell.zero_state(batch_size, data_type())
-
 		with tf.device("/cpu:0"):
 			embedding = tf.get_variable("embedding", [vocab_size, size], dtype=data_type())
 			inputs = tf.nn.embedding_lookup(embedding, self._input_data)
@@ -87,16 +79,37 @@ class PTBModel(object):
 		if is_trainning and config.keep_prob < 1:
 			inputs = tf.nn.dropout(inputs, config.keep_prob)
 
-		outputs = []
-		state = self._initial_state
-		with tf.variable_scope("RNN"):
-			for time_step in range(num_steps):
-				if time_step > 0: tf.get_variable_scope().reuse_variables()
-				(cell_output, state) = cell(inputs[:, time_step, :], state)
-				outputs.append(cell_output)
-		output = tf.reshape(tf.concat(outputs,1 ), [-1, size])
-		weight = tf.get_variable("weight", [size, 5], dtype=data_type())
+		lstm_bw_cell = tf.nn.rnn_cell.BasicLSTMCell(size, forget_bias=1.0, state_is_tuple=True)
+		lstm_fw_cell = tf.nn.rnn_cell.BasicLSTMCell(size, forget_bias=1.0, state_is_tuple=True)
+		if is_trainning and config.keep_prob < 1:
+			lstm_fw_cell = tf.nn.rnn_cell.DropoutWrapper(cell=lstm_fw_cell, input_keep_prob=1.0, 
+				output_keep_prob=config.keep_prob)
+			lstm_bw_cell = tf.nn.rnn_cell.DropoutWrapper(cell=lstm_bw_cell, input_keep_prob=1.0, 
+				output_keep_prob=config.keep_prob)
+		# 多层lstm单元叠加起来
+		cell_fw = tf.nn.rnn_cell.MultiRNNCell([lstm_fw_cell] * config.num_layers, state_is_tuple=True)
+		cell_bw = tf.nn.rnn_cell.MultiRNNCell([lstm_bw_cell] * config.num_layers, state_is_tuple=True)
 
+		self._initial_state_fw = initial_state_fw = cell_fw.zero_state(batch_size, data_type())
+		self._initial_state_bw = initial_state_bw = cell_bw.zero_state(batch_size, data_type())
+
+		inputs = tf.unstack(inputs, num_steps, 1)
+
+		outputs, _, _ = tf.contrib.rnn.static_bidirectional_rnn(cell_fw, cell_bw, inputs, 
+			initial_state_fw = initial_state_fw, initial_state_bw = initial_state_bw, dtype=tf.float32)
+
+		# outputs = []
+		state_fw = self._initial_state_fw
+		state_bw = self._initial_state_bw
+		# with tf.variable_scope("RNN"):
+		# 	for time_step in range(num_steps):
+		# 		if time_step > 0: tf.get_variable_scope().reuse_variables()
+		# 		(cell_output, state) = cell(inputs[:, time_step, :], state)
+		# 		outputs.append(cell_output)
+		# output = tf.reshape(tf.concat(outputs,1 ), [-1, size])
+		output = tf.reshape(tf.concat(outputs, 1), [-1, size * 2])
+		
+		weight = tf.get_variable("weight", [size * 2, 5], dtype=data_type())
 		bias = tf.get_variable("bias", [5], dtype=data_type())
 		logits = tf.matmul(output, weight) + bias
 
@@ -108,7 +121,8 @@ class PTBModel(object):
 			[tf.ones([batch_size * num_steps], dtype=data_type())])
 
 		self._cost = cost = tf.reduce_sum(loss) / batch_size
-		self._final_state = state
+		self._final_state_fw = state_fw
+		self._final_state_bw = state_bw
 		# 只在训练模型的时候定义BP操作
 		if not is_trainning: return
 
@@ -143,16 +157,24 @@ class PTBModel(object):
 		return self._logits
 
 	@property
-	def initial_state(self):
-		return self._initial_state
+	def initial_state_fw(self):
+		return self._initial_state_fw
+
+	@property
+	def initial_state_bw(self):
+		return self._initial_state_bw
 
 	@property
 	def cost(self):
 		return self._cost
 
 	@property
-	def final_state(self):
-		return self._final_state
+	def final_state_fw(self):
+		return self._final_state_fw
+
+	@property
+	def final_state_bw(self):
+		return self._final_state_bw
 
 	@property
 	def lr(self):
@@ -185,16 +207,17 @@ def run_epoch(session, model, data, eval_op, verbose, epoch_size):
 	start_time = time.time()
 	costs = 0.0
 	iters = 0
-	state = session.run(model.initial_state)
+	state_fw = session.run(model.initial_state_fw)
+	state_bw = session.run(model.initial_state_bw)
 	# for step, (x, y) in enumerate(reader.ptb_iterator(data, model.batch_size, model.num_steps)):
 	for i in range(epoch_size):
 		# x,y = get_feeddata(session, i, data, model.batch_size, model.num_steps)
 		x, y = session.run(data)
-		fetches = [model.cost, model.final_state, eval_op]
+		fetches = [model.cost, model._final_state_fw, model._final_state_bw, eval_op]
 		feed_dict = {}
 		feed_dict[model.input_data] = x
 		feed_dict[model.targets] = y
-		cost, state, _ = session.run(fetches, feed_dict)
+		cost, state_fw, state_bw, _ = session.run(fetches, feed_dict)
 
 		costs += cost
 		iters += model.num_steps
@@ -203,11 +226,11 @@ def run_epoch(session, model, data, eval_op, verbose, epoch_size):
 	return np.exp(costs/iters)
 
 def get_result(session, model, data, eval_op, verbose, epoch_size):
-	result_csv_name = "tmp/" + FLAGS.training_option + '_' + 'LSTMResult.csv'
+	result_csv_name = "tmp/" + FLAGS.training_option + '_' + 'biLSTMResult.csv'
 	result_csv = open(result_csv_name, 'w+')
 	csvwriter= csv.writer(result_csv)
-	# batch_size = 20
-	# num_steps = 25
+	batch_size = 20
+	num_steps = 25
 	for i in range(epoch_size):
 		# 保证有序性
 		# x, y = get_feeddata(session, i, data, batch_size, num_steps)
@@ -225,9 +248,7 @@ def get_result(session, model, data, eval_op, verbose, epoch_size):
 		result.append(predicts)
 		# 矩阵合并
 		# 将原单词取回 避免多线程的打乱
-		csv_result = np.column_stack((input_data, y, result))
-		# print(csv_result.shape)
-		csvwriter.writerows(csv_result)
+		csvwriter.writerows(np.column_stack((input_data, y, result)))
 
 def get_config():
 	if FLAGS.model == "small":
