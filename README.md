@@ -15,12 +15,12 @@
 
 ##
 ```
-python LSTM_RNN.py --training_option comixed
+python LSTM_RNN.py --train_option mixed
 
-python LSTM_RNN.py --training_option others
+python LSTM_RNN.py --train_option pure_oracle
 
-python biLSTM_RNN.py --training_option comixed
+python biLSTM_RNN.py --train_option mixed
 
-python biLSTM_RNN.py --training_option others
+python biLSTM_RNN.py --train_option pure_oracle
 
 ```

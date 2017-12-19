@@ -91,8 +91,8 @@ def ptb_producer(raw_data, batch_size, num_steps, name=None):
   # raw_data = tf.convert_to_tensor(raw_data, name="raw_data", dtype=tf.int32)
   with tf.name_scope(name, "PTBProducer", [raw_data, batch_size, num_steps]):
     data_len = len(raw_data)
-
-    epoch_size = data_len // num_steps
+    # 关键一步！！
+    epoch_size = data_len // batch_size
     assertion = tf.assert_positive(
         epoch_size,
         message="epoch_size == 0, decrease batch_size or num_steps")

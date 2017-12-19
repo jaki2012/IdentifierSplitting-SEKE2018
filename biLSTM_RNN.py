@@ -12,6 +12,10 @@ flags.DEFINE_string(
 	"model", "small",
 	"A type of model. Possible options are: small, medium, large.")
 
+flags.DEFINE_integer(
+	"use_crf", 1,
+	"whether to use crf layer. default yes")
+
 flags.DEFINE_string(
 	"data_path", "tmp/coded_file.csv",
 	"The directory to retrive the data")
@@ -21,8 +25,8 @@ flags.DEFINE_bool(
 	"Train using 16-bit floats instead of 32bit floats")
 
 flags.DEFINE_string(
-	"training_option", "default",
-	"The options to train the data")
+	"train_option", "pure_corpus",
+	"The options detemining how to compose the data")
 
 FLAGS = flags.FLAGS
 
@@ -35,30 +39,37 @@ def get_feeddata(session, i, data, batch_size, num_steps):
 	y.set_shape([batch_size, num_steps])
 	return session.run([x, y])
 
+def get_sequence_lengths(x_inputs):
+	sequence_lengths = [0] * len(x_inputs)
+	count = 0
+	for x_input in x_inputs:
+		sequence_lengths[count] = np.count_nonzero(x_input)
+		count = count + 1
+	return sequence_lengths
+
 def get_rawdata(path):
 	df = pd.read_csv(path, header=None)
 	data = df.values
 
-	if FLAGS.training_option == "default":
+	if FLAGS.train_option == "pure_corpus":
 		# 配置一
-		train_data = data[:8499, :]
-		valid_data = data[8499: 8699, :]
-		test_data = data[8699:, :]
-	elif FLAGS.training_option == "comixed":
+		train_data = data[:6698, :]
+		valid_data = data[6698: 7098, :]
+		test_data = data[7098:, :]
+	elif FLAGS.train_option == "mixed":
 		# 配置二
-		train_data = data[:6699, :]
-		valid_data = data[6699: 6899, :]
-		test_data = data[6899:, :]
-	else: 
+		train_data = data[:10732, :]
+		valid_data = data[10732: 10932, :]
+		test_data = data[10932:, :]
+	elif FLAGS.train_option == "pure_oracle":
 		# 配置三
-		train_data = data[6699:8499, :]
-		valid_data = data[8499:8699, :]
-		test_data = data[8699:, :]
+		train_data = data[6698:8498, :]
+		valid_data = data[8498:8698, :]
+		test_data = data[8698:, :]
 	return train_data, valid_data, test_data
 
-
 def data_type():
-	return tf.float16 if FLAGS.use_fp16 else tf.float16
+	return tf.float16 if FLAGS.use_fp16 else tf.float32
 
 class PTBModel(object):
 	""" The PTB model """
@@ -71,6 +82,7 @@ class PTBModel(object):
 
 		self._input_data = tf.placeholder(tf.int32, [batch_size, num_steps])
 		self._targets = tf.placeholder(tf.int32,[batch_size, num_steps])
+		self._sequence_lengths = tf.placeholder(tf.int32, shape=[batch_size])
 
 		with tf.device("/cpu:0"):
 			embedding = tf.get_variable("embedding", [vocab_size, size], dtype=data_type())
@@ -113,14 +125,29 @@ class PTBModel(object):
 		bias = tf.get_variable("bias", [5], dtype=data_type())
 		logits = tf.matmul(output, weight) + bias
 
-		self._logits = logits
+		# if FLAGS.use_crf != 1:
+		# 	pass
+		# else:
+		# 得分矩阵
+		tag_scores = tf.reshape(logits, [batch_size, num_steps, 5])
+		log_likelihood, transition_params = tf.contrib.crf.crf_log_likelihood(tag_scores, self._targets, self._sequence_lengths)
+		loss = tf.reduce_mean(-log_likelihood)
+		# optimizer = tf.train.AdamOptimizer(lr)
+		# train_op = optimizer.minimize(loss)
 
-		loss = tf.contrib.legacy_seq2seq.sequence_loss_by_example(
-			[logits],
-			[tf.reshape(self._targets,[-1])],
-			[tf.ones([batch_size * num_steps], dtype=data_type())])
+		viterbi_sequence, viterbi_score = tf.contrib.crf.crf_decode(tag_scores, transition_params, self._sequence_lengths)
+		self._viterbi_sequence = viterbi_sequence
 
-		self._cost = cost = tf.reduce_sum(loss) / batch_size
+
+		# self._logits = logits
+
+		# loss = tf.contrib.legacy_seq2seq.sequence_loss_by_example(
+		# 	[logits],
+		# 	[tf.reshape(self._targets,[-1])],
+		# 	[tf.ones([batch_size * num_steps], dtype=data_type())])
+
+		# self._cost = cost = tf.reduce_sum(loss) / batch_size
+		self._cost = cost = loss
 		self._final_state_fw = state_fw
 		self._final_state_bw = state_bw
 		# 只在训练模型的时候定义BP操作
@@ -135,6 +162,7 @@ class PTBModel(object):
 		# 梯度下降优化，指定学习速率
 		optimizer = tf.train.GradientDescentOptimizer(self._learning_rate)
 		self._train_op = optimizer.apply_gradients(zip(grads,trainable_variables))
+		# self._train_op = optimizer.minimize(loss)
 
 		self._new_learning_rate = tf.placeholder(tf.float32, shape=[], name="new_learning_rate")
 		self._learning_rate_update = tf.assign(self._learning_rate, self._new_learning_rate)
@@ -169,6 +197,14 @@ class PTBModel(object):
 		return self._cost
 
 	@property
+	def viterbi_sequence(self):
+		return self._viterbi_sequence
+
+	@property
+	def sequence_lengths(self):
+		return self._sequence_lengths
+
+	@property
 	def final_state_fw(self):
 		return self._final_state_fw
 
@@ -201,7 +237,7 @@ class SmallConfig(object):
 	# default 100
 	vocab_size = 67
 
-def run_epoch(session, model, data, eval_op, verbose, epoch_size):
+def run_epoch(session, model, data, eval_op, verbose, epoch_size, Name="NOFOCUS"):
 	# epoch_size = ((len(data) // model.batch_size) -1) // model.num_steps
 	# epoch_size = (len(data) // model.batch_size) -1
 	start_time = time.time()
@@ -213,12 +249,14 @@ def run_epoch(session, model, data, eval_op, verbose, epoch_size):
 	for i in range(epoch_size):
 		# x,y = get_feeddata(session, i, data, model.batch_size, model.num_steps)
 		x, y = session.run(data)
+		if Name == "hey2":
+			print(x)
 		fetches = [model.cost, model._final_state_fw, model._final_state_bw, eval_op]
 		feed_dict = {}
 		feed_dict[model.input_data] = x
 		feed_dict[model.targets] = y
+		feed_dict[model.sequence_lengths] = get_sequence_lengths(x)
 		cost, state_fw, state_bw, _ = session.run(fetches, feed_dict)
-
 		costs += cost
 		iters += model.num_steps
 		if verbose and i % 100 == 0:
@@ -226,7 +264,7 @@ def run_epoch(session, model, data, eval_op, verbose, epoch_size):
 	return np.exp(costs/iters)
 
 def get_result(session, model, data, eval_op, verbose, epoch_size):
-	result_csv_name = "tmp/" + FLAGS.training_option + '_' + 'biLSTMResult.csv'
+	result_csv_name = "tmp/" + FLAGS.train_option + '_' + 'biLSTMResult.csv'
 	result_csv = open(result_csv_name, 'w+')
 	csvwriter= csv.writer(result_csv)
 	batch_size = 20
@@ -235,20 +273,24 @@ def get_result(session, model, data, eval_op, verbose, epoch_size):
 		# 保证有序性
 		# x, y = get_feeddata(session, i, data, batch_size, num_steps)
 		x, y = session.run(data)
-		fetches = [model.logits, model.input_data]
+		fetches = [model._viterbi_sequence, model.input_data]
 		feed_dict = {}
 		feed_dict[model.input_data] = x
 		feed_dict[model.targets] = y
-		logits, input_data = session.run(fetches, feed_dict)
-		predict = np.argmax(logits,1)
-		predicts = []
-		result =[]
-		for j in range(25):
-			predicts.append(predict[j])
-		result.append(predicts)
-		# 矩阵合并
-		# 将原单词取回 避免多线程的打乱
-		csvwriter.writerows(np.column_stack((input_data, y, result)))
+		feed_dict[model.sequence_lengths] = get_sequence_lengths(x)
+		viterbi_sequence, input_data = session.run(fetches, feed_dict)
+		# print(input_data)
+		# print(logits)
+		# predict = np.argmax(logits,1)
+		# print(predict)
+		# predicts = []
+		# result =[]
+		# for j in range(25):
+		# 	predicts.append(predict[j])
+		# result.append(predicts)
+		# # 矩阵合并
+		# # 将原单词取回 避免多线程的打乱
+		csvwriter.writerows(np.column_stack((input_data, y, viterbi_sequence)))
 
 def get_config():
 	if FLAGS.model == "small":
@@ -280,6 +322,7 @@ def main(argv=None):
 	# train_epoch_size = (train_batch_len - 1) // TRAIN_NUM_STEP
 	# print("train batch len: %d" % train_batch_len)
 
+
 	valid_data_len = len(valid_data)
 	valid_batch_len = valid_data_len // eval_config.batch_size
 	# valid_epoch_size = (valid_batch_len - 1) // EVAL_NUM_STEP
@@ -288,7 +331,6 @@ def main(argv=None):
 	test_data_len = len(test_data)
 	test_batch_len = test_data_len // eval_config.batch_size
 	# test_epoch_size = (test_batch_len - 1) // EVAL_NUM_STEP
-
 
 	with tf.Graph().as_default(), tf.Session() as session:
 		initializer = tf.random_uniform_initializer(-config.init_scale, config.init_scale)
@@ -303,6 +345,8 @@ def main(argv=None):
 		train_queue = reader.ptb_producer(train_data, config.batch_size, config.num_steps)
 		eval_queue = reader.ptb_producer(valid_data, eval_config.batch_size, eval_config.num_steps)
 		test_queue = reader.ptb_producer(test_data, eval_config.batch_size, eval_config.num_steps)
+
+		test_queue2 = reader.ptb_producer(test_data, eval_config.batch_size, eval_config.num_steps)
 		print("queue building finish")
 
 		coord = tf.train.Coordinator()
@@ -314,11 +358,12 @@ def main(argv=None):
 			print("In iteration: %d" % (i+1))
 			run_epoch(session, m, train_queue, m.train_op, True, train_batch_len)
 
-			valid_perplexity = run_epoch(session, mValid, eval_queue, tf.no_op(), False, valid_batch_len)
+			valid_perplexity = run_epoch(session, mValid, eval_queue, tf.no_op(), False, valid_batch_len,"hey")
 			print("Epoch: %d Validation Perplexity: %.3f" % (i+1, valid_perplexity))
 		test_perplexity = run_epoch(session, mTest, test_queue, tf.no_op(), False, test_batch_len)
 		print("Final Test Perplexity: %.3f" % test_perplexity)
-		get_result(session, mTest, test_queue, tf.no_op(), False, test_batch_len)
+		
+		get_result(session, mTest, test_queue2, tf.no_op(), False, test_batch_len)
 		coord.request_stop()
 		coord.join(threads)
 

@@ -15,7 +15,7 @@ def sequence_label(str):
 		return ['B', (len(str)-2) * 'M','E']
 
 # 设置newline，否则两行之间会空一行
-oracle_samples = open('oracle_samples.csv','w', newline='')
+oracle_samples = open('tmp/oracle_samples.csv','w', newline='')
 writer = csv.writer(oracle_samples)
 
 INPUT_DATA = "/Users/lijiechu/Desktop/loyola-udelaware-identifier-splitting-oracle.txt"

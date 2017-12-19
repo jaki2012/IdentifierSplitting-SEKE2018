@@ -21,8 +21,8 @@ flags.DEFINE_bool(
 	"Train using 16-bit floats instead of 32bit floats")
 
 flags.DEFINE_string(
-	"training_option", "default",
-	"The options to train the data")
+	"train_option", "pure_corpus",
+	"The options detemining how to compose the data")
 
 FLAGS = flags.FLAGS
 
@@ -39,26 +39,26 @@ def get_rawdata(path):
 	df = pd.read_csv(path, header=None)
 	data = df.values
 
-	if FLAGS.training_option == "default":
+	if FLAGS.train_option == "pure_corpus":
 		# 配置一
-		train_data = data[:8499, :]
-		valid_data = data[8499: 8699, :]
-		test_data = data[8699:, :]
-	elif FLAGS.training_option == "comixed":
+		train_data = data[:6698, :]
+		valid_data = data[6698: 7098, :]
+		test_data = data[7098:, :]
+	elif FLAGS.train_option == "mixed":
 		# 配置二
-		train_data = data[:6699, :]
-		valid_data = data[6699: 6899, :]
-		test_data = data[6899:, :]
-	else: 
+		train_data = data[:8498, :]
+		valid_data = data[8498: 8698, :]
+		test_data = data[8698:, :]
+	elif FLAGS.train_option == "pure_oracle":
 		# 配置三
-		train_data = data[6699:8499, :]
-		valid_data = data[8499:8699, :]
-		test_data = data[8699:, :]
+		train_data = data[6698:8498, :]
+		valid_data = data[8498:8698, :]
+		test_data = data[8698:, :]
 	return train_data, valid_data, test_data
 
 
 def data_type():
-	return tf.float16 if FLAGS.use_fp16 else tf.float16
+	return tf.float16 if FLAGS.use_fp16 else tf.float32
 
 class PTBModel(object):
 	""" The PTB model """
@@ -203,7 +203,7 @@ def run_epoch(session, model, data, eval_op, verbose, epoch_size):
 	return np.exp(costs/iters)
 
 def get_result(session, model, data, eval_op, verbose, epoch_size):
-	result_csv_name = "tmp/" + FLAGS.training_option + '_' + 'LSTMResult.csv'
+	result_csv_name = "tmp/" + FLAGS.train_option + '_' + 'LSTMResult.csv'
 	result_csv = open(result_csv_name, 'w+')
 	csvwriter= csv.writer(result_csv)
 	# batch_size = 20

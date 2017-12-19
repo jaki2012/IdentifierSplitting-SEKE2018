@@ -24,7 +24,8 @@ def really_trick():
 	cheat_splitting_file_csv= open(CHEAT_SPLITTING_FILE, 'w', newline='')
 	csvwriter = csv.writer(cheat_splitting_file_csv)
 	distractors = ['.', ':', '_', '~']
-	distractors = distractors + list(string.ascii_letters) + list(string.digits)
+	distractors = distractors + list(string.digits)
+	# distractors = distractors + list(string.ascii_letters) + list(string.digits)
 	all_lines = open(ORACLE_FILE).readlines()
 	all_words = []
 	for line in all_lines:
@@ -37,11 +38,13 @@ def really_trick():
 	num_of_all_words = len(all_words)
 	modified_words = []
 	for word in all_words:
+		modified_words.append(word)
 		modified_words.append(word.lower())
 		modified_words.append(word.upper())
 		modified_words.append(word.capitalize())
 	random.shuffle(modified_words)
 	half = len(modified_words) // 2
+	count = 0
 	for i in range(half):
 		split_position = random.randint(0,3)
 		splitter_index = random.randint(0,len(distractors)-1)
@@ -54,7 +57,7 @@ def really_trick():
 		# 利用统一式子
 		if split_position == 0:
 			compound_words = modified_words[i] + modified_words[2*i]
-			splitted_words = modified_words[i] + splitter + modified_words[2*i]
+			splitted_words = modified_words[i] + '-' + modified_words[2*i]
 			split[0] = 'B'
 			split[leni-1] = 'E'
 			split[leni] = 'B'
@@ -62,7 +65,7 @@ def really_trick():
 		elif split_position == 1:
 			split.append('E')
 			compound_words = splitter + modified_words[i] + modified_words[2*i]
-			splitted_words = splitter + splitter + modified_words[i] + modified_words[2*i]
+			splitted_words = splitter + '-' + modified_words[i] + '-' + modified_words[2*i]
 			split[0]='S'
 			split[1]='B'
 			split[leni]='E'
@@ -70,7 +73,7 @@ def really_trick():
 		elif split_position == 2:
 			split.append('E')
 			compound_words = modified_words[i] + splitter + modified_words[2*i]
-			splitted_words = modified_words[i] + splitter + splitter + splitter + modified_words[2*i]
+			splitted_words = modified_words[i] + '-' + splitter + '-' + modified_words[2*i]
 			split[0]='B'
 			split[leni-1]='E'
 			split[leni]='S'
@@ -78,12 +81,13 @@ def really_trick():
 		else:
 			split.append('S')
 			compound_words = modified_words[i] + modified_words[2*i] + splitter
-			splitted_words = modified_words[i] + splitter + modified_words[2*i] + splitter + splitter
+			splitted_words = modified_words[i] + '-' + modified_words[2*i] + '-' + splitter
 			split[0]='B'
 			split[leni-1]='E'
 			split[leni]='B'
 			split[leni+lenj-1]='E'
 		spare = 25 - len(compound_words)
+		# 不一定每次都是6699小于25的
 		if spare > 0 :
 			compound_word = compound_words
 			for k in range(spare):
@@ -93,11 +97,15 @@ def really_trick():
 			words = []
 			words.append(compound_words)
 			words.append(splitted_words)
+			count = count+1
 			csvwriter.writerow(words + list(''.join(list(compound_word))) + split)	
 		# 简易进度条
 		print("进度: ======={0}%".format(round((i + 1) * 100 / half)), end="\r")
 		time.sleep(0.01)
-	# print(len(distractors))
+	df = pd.read_csv("tmp/oracle_samples.csv",header=None)
+	print(df.values.shape[0])
+	print(count)
+	csvwriter.writerows(df.values)
 
 def trick_on_dataset():
 	cheat_splitting_file_csv= open(CHEAT_SPLITTING_FILE, 'w', newline='')
