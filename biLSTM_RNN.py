@@ -5,6 +5,9 @@ import reader
 import pandas as pd
 import time
 import csv
+from tensorflow.contrib.crf import crf_log_likelihood
+from tensorflow.contrib.crf import viterbi_decode
+from tensorflow.contrib.layers.python.layers import initializers
 flags = tf.flags
 logging = tf.logging
 
@@ -29,6 +32,17 @@ flags.DEFINE_string(
 	"The options detemining how to compose the data")
 
 FLAGS = flags.FLAGS
+
+def shared(shape, name):
+	"""
+	Create a shared object of a numpy array.
+	"""
+	if len(shape) == 1:
+		# bias are initialized with zeros
+		return tf.get_variable(name, shape, tf.float32, tf.constant_initializer(0))
+	else:
+		drange = np.sqrt(6. / (np.sum(shape)))
+		return tf.get_variable(name, shape, tf.float32, tf.random_uniform_initializer(-drange, drange))
 
 def get_feeddata(session, i, data, batch_size, num_steps):
 	sequence = data[:, :25]
@@ -63,26 +77,44 @@ def get_rawdata(path):
 		test_data = data[10932:, :]
 	elif FLAGS.train_option == "pure_oracle":
 		# 配置三
-		train_data = data[6698:8498, :]
-		valid_data = data[8498:8698, :]
-		test_data = data[8698:, :]
+		train_data = data[8932:10732, :]
+		valid_data = data[10732:10932, :]
+		test_data = data[10932:, :]
 	return train_data, valid_data, test_data
 
 def data_type():
 	return tf.float16 if FLAGS.use_fp16 else tf.float32
+
+def getTransition(y_train_batch):
+	transition_batch = []
+	for m in range(len(y_train_batch)):
+		y = [5] + list(y_train_batch[m]) + [0]
+		for t in range(len(y)):
+			if t + 1 == len(y):
+				continue
+			i = y[t]
+			j = y[t + 1]
+			if i == 0:
+				break
+			transition_batch.append(i * 6 + j)
+	transition_batch = np.array(transition_batch)
+	return transition_batch
+
+
 
 class PTBModel(object):
 	""" The PTB model """
 	def __init__(self, is_trainning, config):
 		self.batch_size = batch_size = config.batch_size
 		self.num_steps = num_steps = config.num_steps
+		self.num_classes = num_classes = config.num_classes
 		self._logits = []
 		size = config.hidden_size
 		vocab_size = config.vocab_size
 
 		self._input_data = tf.placeholder(tf.int32, [batch_size, num_steps])
 		self._targets = tf.placeholder(tf.int32,[batch_size, num_steps])
-		self._sequence_lengths = tf.placeholder(tf.int32, shape=[batch_size])
+		self.initializer = initializers.xavier_initializer()
 
 		with tf.device("/cpu:0"):
 			embedding = tf.get_variable("embedding", [vocab_size, size], dtype=data_type())
@@ -105,10 +137,14 @@ class PTBModel(object):
 		self._initial_state_fw = initial_state_fw = cell_fw.zero_state(batch_size, data_type())
 		self._initial_state_bw = initial_state_bw = cell_bw.zero_state(batch_size, data_type())
 
+		# get the length of each sample
+		self.length = tf.reduce_sum(tf.sign(self._input_data), reduction_indices=1)
+		self.length = tf.cast(self.length, tf.int32)
+
 		inputs = tf.unstack(inputs, num_steps, 1)
 
 		outputs, _, _ = tf.contrib.rnn.static_bidirectional_rnn(cell_fw, cell_bw, inputs, 
-			initial_state_fw = initial_state_fw, initial_state_bw = initial_state_bw, dtype=tf.float32)
+			initial_state_fw = initial_state_fw, initial_state_bw = initial_state_bw, dtype=tf.float32, sequence_length=self.length)
 
 		# outputs = []
 		state_fw = self._initial_state_fw
@@ -125,21 +161,38 @@ class PTBModel(object):
 		bias = tf.get_variable("bias", [5], dtype=data_type())
 		logits = tf.matmul(output, weight) + bias
 
-		# if FLAGS.use_crf != 1:
-		# 	pass
-		# else:
-		# 得分矩阵
-		tag_scores = tf.reshape(logits, [batch_size, num_steps, 5])
-		log_likelihood, transition_params = tf.contrib.crf.crf_log_likelihood(tag_scores, self._targets, self._sequence_lengths)
-		loss = tf.reduce_mean(-log_likelihood)
-		# optimizer = tf.train.AdamOptimizer(lr)
-		# train_op = optimizer.minimize(loss)
+		self.tags_scores = tf.reshape(logits, [batch_size, num_steps, num_classes])
 
-		viterbi_sequence, viterbi_score = tf.contrib.crf.crf_decode(tag_scores, transition_params, self._sequence_lengths)
-		self._viterbi_sequence = viterbi_sequence
+		small = -1000.0
+		# pad logits for crf loss
+		start_logits = tf.concat(
+			 [small * tf.ones(shape=[self.batch_size, 1, self.num_classes]), tf.zeros(shape=[self.batch_size, 1, 1])], axis=-1)
+		pad_logits = tf.cast(small * tf.ones([self.batch_size, self.num_steps, 1]), tf.float32)
+		logits = tf.concat([self.tags_scores, pad_logits], axis=-1)
+		logits = tf.concat([start_logits, logits], axis=1)
+		targets = tf.concat(
+			 [tf.cast(self.num_classes*tf.ones([self.batch_size, 1]), tf.int32), self._targets], axis=-1)
 
+		self.trans = tf.get_variable("transitions",
+			shape=[self.num_classes + 1, self.num_classes + 1],
+			initializer=self.initializer)
+		
+		log_likelihood, self.trans = crf_log_likelihood(
+			inputs=logits,
+			tag_indices=targets,
+			transition_params=self.trans,
+			sequence_lengths=self.length+1)
+		
+		self.loss = loss = -tf.reduce_mean(log_likelihood)
 
-		# self._logits = logits
+		self._tg = self.tags_scores
+		self._l = self.length 
+		self._tr = self.trans
+		# loss
+		# log_likelihood, self.transition_params = tf.contrib.crf.crf_log_likelihood(inputs=self.tags_scores,
+		# 	tag_indices=self._targets,
+		# 	sequence_lengths=self.length)
+		# self.loss = loss = -tf.reduce_mean(log_likelihood)
 
 		# loss = tf.contrib.legacy_seq2seq.sequence_loss_by_example(
 		# 	[logits],
@@ -157,7 +210,7 @@ class PTBModel(object):
 		trainable_variables = tf.trainable_variables()
 
 		grads, _ = tf.clip_by_global_norm(
-			tf.gradients(cost, trainable_variables), config.max_grad_norm)
+			tf.gradients(loss, trainable_variables), config.max_grad_norm)
 
 		# 梯度下降优化，指定学习速率
 		optimizer = tf.train.GradientDescentOptimizer(self._learning_rate)
@@ -181,6 +234,18 @@ class PTBModel(object):
 		return self._targets
 
 	@property
+	def tg(self):
+		return self._tg
+
+	@property
+	def l(self):
+		return self._l
+
+	@property
+	def tr(self):
+		return self._tr
+
+	@property
 	def logits(self):
 		return self._logits
 
@@ -197,10 +262,6 @@ class PTBModel(object):
 		return self._cost
 
 	@property
-	def viterbi_sequence(self):
-		return self._viterbi_sequence
-
-	@property
 	def sequence_lengths(self):
 		return self._sequence_lengths
 
@@ -211,6 +272,10 @@ class PTBModel(object):
 	@property
 	def final_state_bw(self):
 		return self._final_state_bw
+
+	@property
+	def targets_transition(self):
+		return self._targets_transition
 
 	@property
 	def lr(self):
@@ -236,6 +301,31 @@ class SmallConfig(object):
 	batch_size = 20
 	# default 100
 	vocab_size = 67
+	num_classes = 5
+
+def decode(logits, lengths, matrix):
+	"""
+	:param logits: [batch_size, num_steps, num_tags]float32, logits
+	:param lengths: [batch_size]int32, real length of each sequence
+	:param matrix: transaction matrix for inference
+	:return:
+	"""
+	# inference final labels usa viterbi Algorithm
+	paths = []
+	small = -1000.0
+	start = np.asarray([[small]* 5 +[0]])
+	for score, length in zip(logits, lengths):
+		score = score[:length]
+		pad = small * np.ones([length, 1])
+		logits = np.concatenate([score, pad], axis=1)
+		logits = np.concatenate([start, logits], axis=0)
+		path, _ = viterbi_decode(logits, matrix)
+		if len(path) < 26:
+			for i in range(26 -len(path)):
+				path.append(0)
+		paths.append(path[1:])
+	# 搞了半天是自己搞错了草
+	return paths
 
 def run_epoch(session, model, data, eval_op, verbose, epoch_size, Name="NOFOCUS"):
 	# epoch_size = ((len(data) // model.batch_size) -1) // model.num_steps
@@ -249,18 +339,16 @@ def run_epoch(session, model, data, eval_op, verbose, epoch_size, Name="NOFOCUS"
 	for i in range(epoch_size):
 		# x,y = get_feeddata(session, i, data, model.batch_size, model.num_steps)
 		x, y = session.run(data)
-		if Name == "hey2":
-			print(x)
 		fetches = [model.cost, model._final_state_fw, model._final_state_bw, eval_op]
 		feed_dict = {}
 		feed_dict[model.input_data] = x
 		feed_dict[model.targets] = y
-		feed_dict[model.sequence_lengths] = get_sequence_lengths(x)
 		cost, state_fw, state_bw, _ = session.run(fetches, feed_dict)
 		costs += cost
 		iters += model.num_steps
 		if verbose and i % 100 == 0:
 			print("After %d steps, perplexity is %.3f" % (i, np.exp(costs/iters)))
+			print("Meanwhile, costs is %.3f" % costs)
 	return np.exp(costs/iters)
 
 def get_result(session, model, data, eval_op, verbose, epoch_size):
@@ -273,12 +361,14 @@ def get_result(session, model, data, eval_op, verbose, epoch_size):
 		# 保证有序性
 		# x, y = get_feeddata(session, i, data, batch_size, num_steps)
 		x, y = session.run(data)
-		fetches = [model._viterbi_sequence, model.input_data]
+		fetches = [model.tags_scores, model.l, model.trans, model.input_data]
 		feed_dict = {}
 		feed_dict[model.input_data] = x
 		feed_dict[model.targets] = y
-		feed_dict[model.sequence_lengths] = get_sequence_lengths(x)
-		viterbi_sequence, input_data = session.run(fetches, feed_dict)
+		tags_scores, length, trans, input_data = session.run(fetches, feed_dict)
+		batch_paths = decode(tags_scores ,length ,trans)
+		# print(y)
+		# print(batch_paths)
 		# print(input_data)
 		# print(logits)
 		# predict = np.argmax(logits,1)
@@ -290,7 +380,7 @@ def get_result(session, model, data, eval_op, verbose, epoch_size):
 		# result.append(predicts)
 		# # 矩阵合并
 		# # 将原单词取回 避免多线程的打乱
-		csvwriter.writerows(np.column_stack((input_data, y, viterbi_sequence)))
+		csvwriter.writerows(np.column_stack((input_data, y, batch_paths)))
 
 def get_config():
 	if FLAGS.model == "small":

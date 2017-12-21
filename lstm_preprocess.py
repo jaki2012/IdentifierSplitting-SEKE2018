@@ -99,7 +99,7 @@ def vec2word():
 	result_csv = open(RESULT_FILE, 'w', newline='')
 	csvwriter = csv.writer(result_csv)
 	
-	df1 = pd.read_csv("tmp/mixed_biLSTMResult.csv", header=None)
+	df1 = pd.read_csv("tmp/pure_oracle_biLSTMResult.csv", header=None)
 	lendict = df1.values.shape[0]
 	total_word_id_list = list(itertools.chain.from_iterable(df1.values[:, :25]))
 	total_tag_id_list = list(itertools.chain.from_iterable(df1.values[:, 25:50]))
