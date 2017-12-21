@@ -114,11 +114,57 @@ class PTBModel(object):
 
 		self._input_data = tf.placeholder(tf.int32, [batch_size, num_steps])
 		self._targets = tf.placeholder(tf.int32,[batch_size, num_steps])
+
 		self.initializer = initializers.xavier_initializer()
 
 		with tf.device("/cpu:0"):
 			embedding = tf.get_variable("embedding", [vocab_size, size], dtype=data_type())
 			inputs = tf.nn.embedding_lookup(embedding, self._input_data)
+
+		with tf.variable_scope("CNN"):
+			reshaped_inputs = tf.reshape(inputs, [batch_size, num_steps, -1, 1])
+			# reshaped_inputs.shape[2] is actually 200
+			filter_weight = tf.get_variable('weights', [3, reshaped_inputs.shape[2], 1, 1], initializer=tf.truncated_normal_initializer(stddev=0.1))
+			biases = tf.get_variable('biases', [1], initializer = tf.constant_initializer(0.0))
+
+			conv = tf.nn.conv2d(reshaped_inputs, filter_weight, strides=[1,1,1,1], padding='SAME')
+			relu = tf.nn.relu(tf.nn.bias_add(conv, biases))
+
+			relu = tf.reshape(relu, [batch_size, num_steps, -1])
+
+# ========================= CNN BILSTM
+
+		inputs1 = relu
+		if is_trainning and config.keep_prob < 1:
+			inputs1 = tf.nn.dropout(relu, config.keep_prob)
+
+		lstm_bw_cell1 = tf.nn.rnn_cell.BasicLSTMCell(size, forget_bias=1.0, state_is_tuple=True)
+		lstm_fw_cell1 = tf.nn.rnn_cell.BasicLSTMCell(size, forget_bias=1.0, state_is_tuple=True)
+		if is_trainning and config.keep_prob < 1:
+			lstm_fw_cell1 = tf.nn.rnn_cell.DropoutWrapper(cell=lstm_fw_cell1, input_keep_prob=1.0, 
+				output_keep_prob=config.keep_prob)
+			lstm_bw_cell1 = tf.nn.rnn_cell.DropoutWrapper(cell=lstm_bw_cell1, input_keep_prob=1.0, 
+				output_keep_prob=config.keep_prob)
+		# 多层lstm单元叠加起来
+		cell_fw1 = tf.nn.rnn_cell.MultiRNNCell([lstm_fw_cell1] * config.num_layers, state_is_tuple=True)
+		cell_bw1 = tf.nn.rnn_cell.MultiRNNCell([lstm_bw_cell1] * config.num_layers, state_is_tuple=True)
+
+		self._initial_state_fw1 = initial_state_fw1 = cell_fw1.zero_state(batch_size, data_type())
+		self._initial_state_bw1 = initial_state_bw1 = cell_bw1.zero_state(batch_size, data_type())
+
+		# get the length of each sample
+		self.length = tf.reduce_sum(tf.sign(self._input_data), reduction_indices=1)
+		self.length = tf.cast(self.length, tf.int32)
+
+		inputs1 = tf.unstack(inputs1, num_steps, 1)
+
+		# 此处可以不要sequence length参数 因为卷积之后谁也说不准
+		outputs1, _, _ = tf.contrib.rnn.static_bidirectional_rnn(cell_fw1, cell_bw1, inputs1, 
+			initial_state_fw = initial_state_fw1, initial_state_bw = initial_state_bw1, dtype=tf.float32, scope="cnn_rnn")
+
+		output1 = tf.reshape(tf.concat(outputs1, 1), [-1, size * 2])
+
+# ========================= end
 
 		if is_trainning and config.keep_prob < 1:
 			inputs = tf.nn.dropout(inputs, config.keep_prob)
@@ -138,8 +184,8 @@ class PTBModel(object):
 		self._initial_state_bw = initial_state_bw = cell_bw.zero_state(batch_size, data_type())
 
 		# get the length of each sample
-		self.length = tf.reduce_sum(tf.sign(self._input_data), reduction_indices=1)
-		self.length = tf.cast(self.length, tf.int32)
+		# self.length = tf.reduce_sum(tf.sign(self._input_data), reduction_indices=1)
+		# self.length = tf.cast(self.length, tf.int32)
 
 		inputs = tf.unstack(inputs, num_steps, 1)
 
@@ -156,10 +202,12 @@ class PTBModel(object):
 		# 		outputs.append(cell_output)
 		# output = tf.reshape(tf.concat(outputs,1 ), [-1, size])
 		output = tf.reshape(tf.concat(outputs, 1), [-1, size * 2])
+
+		final_output = tf.concat([output, output1], 1)
 		
-		weight = tf.get_variable("weight", [size * 2, 5], dtype=data_type())
+		weight = tf.get_variable("weight", [size * 2 * 2, 5], dtype=data_type())
 		bias = tf.get_variable("bias", [5], dtype=data_type())
-		logits = tf.matmul(output, weight) + bias
+		logits = tf.matmul(final_output, weight) + bias
 
 		self.tags_scores = tf.reshape(logits, [batch_size, num_steps, num_classes])
 
