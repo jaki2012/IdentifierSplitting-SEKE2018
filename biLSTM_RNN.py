@@ -437,7 +437,7 @@ def run_epoch(session, model, data, eval_op, verbose, epoch_size, Name="NOFOCUS"
 	return np.exp(costs/iters)
 
 def get_result(session, model, data, eval_op, verbose, epoch_size):
-	result_csv_name = "tmp/" + FLAGS.train_option + '_' + 'crf' + FLAGS.crf_option + FLAGS.iteration +'biLSTMResult.csv'
+	result_csv_name = "tmp/" + FLAGS.train_option + '_' + 'crf' + FLAGS.crf_option + 'iter'+ FLAGS.iteration + FLAGS.shuffle +'biLSTMResult.csv'
 	result_csv = open(result_csv_name, 'w+')
 	csvwriter= csv.writer(result_csv)
 	batch_size = 20
@@ -466,6 +466,7 @@ def get_result(session, model, data, eval_op, verbose, epoch_size):
 		# # 矩阵合并
 		# # 将原单词取回 避免多线程的打乱
 		csvwriter.writerows(np.column_stack((input_data, y, batch_paths)))
+	print("%s finished and saved" % result_csv_name)
 
 def get_config():
 	if FLAGS.model == "small":
