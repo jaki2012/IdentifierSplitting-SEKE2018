@@ -3,6 +3,8 @@ import tensorflow as tf
 import numpy as np 
 import reader
 import pandas as pd
+# from sklearn.utils import shuffle  
+import random
 import time
 import csv
 from tensorflow.contrib.crf import crf_log_likelihood
@@ -24,12 +26,24 @@ flags.DEFINE_string(
 	"The directory to retrive the data")
 
 flags.DEFINE_bool(
+	"shuffle", False,
+	"whether to shuffle the train data")
+
+flags.DEFINE_bool(
 	"use_fp16", False,
 	"Train using 16-bit floats instead of 32bit floats")
 
 flags.DEFINE_string(
 	"train_option", "pure_corpus",
 	"The options detemining how to compose the data")
+
+flags.DEFINE_integer(
+	"crf_option", 1,
+	"ways to conduct crf option")
+
+flags.DEFINE_integer(
+	"iteration", 1,
+	"current times to iteration")
 
 FLAGS = flags.FLAGS
 
@@ -67,19 +81,29 @@ def get_rawdata(path):
 
 	if FLAGS.train_option == "pure_corpus":
 		# 配置一
-		train_data = data[:6698, :]
-		valid_data = data[6698: 7098, :]
-		test_data = data[7098:, :]
+		train_data = data[:32355, :]
+		shuffle_data = data[32355:, :]
+		if FLAGS.shuffle:
+			random.shuffle(shuffle_data)
+		valid_data = shuffle_data[:2000, :]
+		test_data = shuffle_data[2000:, :]
 	elif FLAGS.train_option == "mixed":
 		# 配置二
-		train_data = data[:10732, :]
-		valid_data = data[10732: 10932, :]
-		test_data = data[10932:, :]
+		train_data = data[:32355, :]
+		shuffle_data = data[32355:, :]
+		if FLAGS.shuffle:
+			random.shuffle(shuffle_data)
+		train_data = np.row_stack((train_data, shuffle_data[:1800]))
+		valid_data = shuffle_data[1800:2000, :]
+		test_data = shuffle_data[2000:, :]
 	elif FLAGS.train_option == "pure_oracle":
 		# 配置三
-		train_data = data[8932:10732, :]
-		valid_data = data[10732:10932, :]
-		test_data = data[10932:, :]
+		shuffle_data = data[32355:, :]
+		if FLAGS.shuffle:
+			random.shuffle(shuffle_data)
+		train_data = shuffle_data[:1800, :]
+		valid_data = shuffle_data[1800:2000, :]
+		test_data = shuffle_data[2000:, :]
 	return train_data, valid_data, test_data
 
 def data_type():
@@ -121,49 +145,57 @@ class PTBModel(object):
 			embedding = tf.get_variable("embedding", [vocab_size, size], dtype=data_type())
 			inputs = tf.nn.embedding_lookup(embedding, self._input_data)
 
-		with tf.variable_scope("CNN"):
-			reshaped_inputs = tf.reshape(inputs, [batch_size, num_steps, -1, 1])
-			# reshaped_inputs.shape[2] is actually 200
-			filter_weight = tf.get_variable('weights', [3, reshaped_inputs.shape[2], 1, 1], initializer=tf.truncated_normal_initializer(stddev=0.1))
-			biases = tf.get_variable('biases', [1], initializer = tf.constant_initializer(0.0))
+		
+		if FLAGS.crf_option != 1:
+			with tf.variable_scope("CNN"):
+				reshaped_inputs = tf.reshape(inputs, [batch_size, num_steps, -1, 1])
+				# reshaped_inputs.shape[2] is actually 200
+				filter_weight = tf.get_variable('weights', [3, reshaped_inputs.shape[2], 1, 1], initializer=tf.truncated_normal_initializer(stddev=0.1))
+				biases = tf.get_variable('biases', [1], initializer = tf.constant_initializer(0.0))
 
-			conv = tf.nn.conv2d(reshaped_inputs, filter_weight, strides=[1,1,1,1], padding='SAME')
-			relu = tf.nn.relu(tf.nn.bias_add(conv, biases))
+				conv = tf.nn.conv2d(reshaped_inputs, filter_weight, strides=[1,1,1,1], padding='SAME')
+				relu = tf.nn.relu(tf.nn.bias_add(conv, biases))
 
-			relu = tf.reshape(relu, [batch_size, num_steps, -1])
-
-# ========================= CNN BILSTM
-
-		inputs1 = relu
-		if is_trainning and config.keep_prob < 1:
-			inputs1 = tf.nn.dropout(relu, config.keep_prob)
-
-		lstm_bw_cell1 = tf.nn.rnn_cell.BasicLSTMCell(size, forget_bias=1.0, state_is_tuple=True)
-		lstm_fw_cell1 = tf.nn.rnn_cell.BasicLSTMCell(size, forget_bias=1.0, state_is_tuple=True)
-		if is_trainning and config.keep_prob < 1:
-			lstm_fw_cell1 = tf.nn.rnn_cell.DropoutWrapper(cell=lstm_fw_cell1, input_keep_prob=1.0, 
-				output_keep_prob=config.keep_prob)
-			lstm_bw_cell1 = tf.nn.rnn_cell.DropoutWrapper(cell=lstm_bw_cell1, input_keep_prob=1.0, 
-				output_keep_prob=config.keep_prob)
-		# 多层lstm单元叠加起来
-		cell_fw1 = tf.nn.rnn_cell.MultiRNNCell([lstm_fw_cell1] * config.num_layers, state_is_tuple=True)
-		cell_bw1 = tf.nn.rnn_cell.MultiRNNCell([lstm_bw_cell1] * config.num_layers, state_is_tuple=True)
-
-		self._initial_state_fw1 = initial_state_fw1 = cell_fw1.zero_state(batch_size, data_type())
-		self._initial_state_bw1 = initial_state_bw1 = cell_bw1.zero_state(batch_size, data_type())
+				relu = tf.reshape(relu, [batch_size, num_steps, -1])
 
 		# get the length of each sample
 		self.length = tf.reduce_sum(tf.sign(self._input_data), reduction_indices=1)
 		self.length = tf.cast(self.length, tf.int32)
 
-		inputs1 = tf.unstack(inputs1, num_steps, 1)
+		if FLAGS.crf_option == 2:
+			inputs1 = relu
+			inputs = tf.concat([inputs, inputs1], 2)
+			size = size * 2
+# ========================= CNN BILSTM
 
-		# 此处可以不要sequence length参数 因为卷积之后谁也说不准
-		outputs1, _, _ = tf.contrib.rnn.static_bidirectional_rnn(cell_fw1, cell_bw1, inputs1, 
-			initial_state_fw = initial_state_fw1, initial_state_bw = initial_state_bw1, dtype=tf.float32, scope="cnn_rnn")
+		if FLAGS.crf_option == 3:
+			inputs1 = relu
+			if is_trainning and config.keep_prob < 1:
+				inputs1 = tf.nn.dropout(relu, config.keep_prob)
 
-		output1 = tf.reshape(tf.concat(outputs1, 1), [-1, size * 2])
+			lstm_bw_cell1 = tf.nn.rnn_cell.BasicLSTMCell(size, forget_bias=1.0, state_is_tuple=True)
+			lstm_fw_cell1 = tf.nn.rnn_cell.BasicLSTMCell(size, forget_bias=1.0, state_is_tuple=True)
+			if is_trainning and config.keep_prob < 1:
+				lstm_fw_cell1 = tf.nn.rnn_cell.DropoutWrapper(cell=lstm_fw_cell1, input_keep_prob=1.0, 
+					output_keep_prob=config.keep_prob)
+				lstm_bw_cell1 = tf.nn.rnn_cell.DropoutWrapper(cell=lstm_bw_cell1, input_keep_prob=1.0, 
+					output_keep_prob=config.keep_prob)
+			# 多层lstm单元叠加起来
+			cell_fw1 = tf.nn.rnn_cell.MultiRNNCell([lstm_fw_cell1] * config.num_layers, state_is_tuple=True)
+			cell_bw1 = tf.nn.rnn_cell.MultiRNNCell([lstm_bw_cell1] * config.num_layers, state_is_tuple=True)
 
+			self._initial_state_fw1 = initial_state_fw1 = cell_fw1.zero_state(batch_size, data_type())
+			self._initial_state_bw1 = initial_state_bw1 = cell_bw1.zero_state(batch_size, data_type())
+
+			
+
+			inputs1 = tf.unstack(inputs1, num_steps, 1)
+
+			# 此处可以不要sequence length参数 因为卷积之后谁也说不准
+			outputs1, _, _ = tf.contrib.rnn.static_bidirectional_rnn(cell_fw1, cell_bw1, inputs1, 
+				initial_state_fw = initial_state_fw1, initial_state_bw = initial_state_bw1, dtype=tf.float32, scope="cnn_rnn")
+
+			output1 = tf.reshape(tf.concat(outputs1, 1), [-1, size * 2])
 # ========================= end
 
 		if is_trainning and config.keep_prob < 1:
@@ -203,11 +235,16 @@ class PTBModel(object):
 		# output = tf.reshape(tf.concat(outputs,1 ), [-1, size])
 		output = tf.reshape(tf.concat(outputs, 1), [-1, size * 2])
 
-		final_output = tf.concat([output, output1], 1)
+		if FLAGS.crf_option == 3:
+			size = size * 2
+			final_output = tf.concat([output, output1], 1)
 		
-		weight = tf.get_variable("weight", [size * 2 * 2, 5], dtype=data_type())
+		weight = tf.get_variable("weight", [size * 2, 5], dtype=data_type())
 		bias = tf.get_variable("bias", [5], dtype=data_type())
-		logits = tf.matmul(final_output, weight) + bias
+		if FLAGS.crf_option !=3:
+			logits = tf.matmul(output, weight) + bias
+		else:
+			logits = tf.matmul(final_output, weight) + bias
 
 		self.tags_scores = tf.reshape(logits, [batch_size, num_steps, num_classes])
 
@@ -343,7 +380,7 @@ class SmallConfig(object):
 	num_steps = 25
 	hidden_size = 200
 	max_epoch = 4
-	max_max_epoch = 10
+	max_max_epoch = 13
 	keep_prob = 1.0
 	lr_decay = 0.5
 	batch_size = 20
@@ -400,7 +437,7 @@ def run_epoch(session, model, data, eval_op, verbose, epoch_size, Name="NOFOCUS"
 	return np.exp(costs/iters)
 
 def get_result(session, model, data, eval_op, verbose, epoch_size):
-	result_csv_name = "tmp/" + FLAGS.train_option + '_' + 'biLSTMResult.csv'
+	result_csv_name = "tmp/" + FLAGS.train_option + '_' + 'crf' + FLAGS.crf_option + FLAGS.iteration +'biLSTMResult.csv'
 	result_csv = open(result_csv_name, 'w+')
 	csvwriter= csv.writer(result_csv)
 	batch_size = 20

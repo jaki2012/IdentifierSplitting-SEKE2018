@@ -23,7 +23,6 @@ set_ids = range(0, len(set_words))
 tags = [ 'N', 'B', 'M', 'E', 'S']
 tag_ids = range(len(tags))
 word2id = pd.Series(set_ids, index=set_words)
-print(word2id)
 id2word = pd.Series(set_words, index=set_ids)
 tag2id = pd.Series(tag_ids, index=tags)
 id2tag = pd.Series(tags, index=tag_ids)
@@ -99,12 +98,11 @@ def vec2word():
 	result_csv = open(RESULT_FILE, 'w', newline='')
 	csvwriter = csv.writer(result_csv)
 	
-	df1 = pd.read_csv("tmp/pure_oracle_biLSTMResult.csv", header=None)
+	df1 = pd.read_csv("tmp/pure_corpus_biLSTMResult.csv", header=None)
 	lendict = df1.values.shape[0]
 	total_word_id_list = list(itertools.chain.from_iterable(df1.values[:, :25]))
 	total_tag_id_list = list(itertools.chain.from_iterable(df1.values[:, 25:50]))
 	total_tag_id_list1 = list(itertools.chain.from_iterable(df1.values[:, 50:]))
-	print(id2word)
 	words = coding(total_word_id_list, id2word)
 	tags = coding(total_tag_id_list, id2tag)
 	tags1 = coding(total_tag_id_list1, id2tag)
@@ -216,8 +214,8 @@ def trick_on_dataset():
 	# csvwriter.writerows(split_results)
 	# print(split_results)
 if __name__ == '__main__':
-	# word2vec(total_dict_list)
-	vec2word()
-	cal_accuracy()
+	word2vec(total_dict_list)
+	# vec2word()
+	# cal_accuracy()
 	# trick_on_dataset()
 	# print()

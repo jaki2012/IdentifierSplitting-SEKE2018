@@ -21,7 +21,7 @@ def really_trick():
 	# python 3.0写法
 	# print(list(string.ascii_letters))
 	# print(list(string.digits))
-	cheat_splitting_file_csv= open(CHEAT_SPLITTING_FILE, 'w', newline='')
+	cheat_splitting_file_csv= open(CHEAT_SPLITTING_FILE, 'a', newline='')
 	csvwriter = csv.writer(cheat_splitting_file_csv)
 	distractors = ['.', ':', '_', '~']
 	distractors = distractors + list(string.digits)
@@ -49,39 +49,39 @@ def really_trick():
 		split_position = random.randint(0,3)
 		splitter_index = random.randint(0,len(distractors)-1)
 		splitter = distractors[splitter_index]
-		split = ['M'] * (len(modified_words[i]+modified_words[2*i]))
+		split = ['M'] * (len(modified_words[i]+modified_words[half+i]))
 		leni = len(modified_words[i])
-		lenj = len(modified_words[2*i])
+		lenj = len(modified_words[half+i])
 		# TODO:需要用优雅的方式处理
 		# 方法一：利用字符串下标
 		# 利用统一式子
 		if split_position == 0:
-			compound_words = modified_words[i] + modified_words[2*i]
-			splitted_words = modified_words[i] + '-' + modified_words[2*i]
+			compound_words = modified_words[i] + modified_words[half+i]
+			splitted_words = modified_words[i] + '-' + modified_words[half+i]
 			split[0] = 'B'
 			split[leni-1] = 'E'
 			split[leni] = 'B'
 			split[leni+lenj-1] = 'E'
 		elif split_position == 1:
 			split.append('E')
-			compound_words = splitter + modified_words[i] + modified_words[2*i]
-			splitted_words = splitter + '-' + modified_words[i] + '-' + modified_words[2*i]
+			compound_words = splitter + modified_words[i] + modified_words[half+i]
+			splitted_words = splitter + '-' + modified_words[i] + '-' + modified_words[half+i]
 			split[0]='S'
 			split[1]='B'
 			split[leni]='E'
 			split[leni+1]='B'
 		elif split_position == 2:
 			split.append('E')
-			compound_words = modified_words[i] + splitter + modified_words[2*i]
-			splitted_words = modified_words[i] + '-' + splitter + '-' + modified_words[2*i]
+			compound_words = modified_words[i] + splitter + modified_words[half+i]
+			splitted_words = modified_words[i] + '-' + splitter + '-' + modified_words[half+i]
 			split[0]='B'
 			split[leni-1]='E'
 			split[leni]='S'
 			split[leni+1]='B'
 		else:
 			split.append('S')
-			compound_words = modified_words[i] + modified_words[2*i] + splitter
-			splitted_words = modified_words[i] + '-' + modified_words[2*i] + '-' + splitter
+			compound_words = modified_words[i] + modified_words[half+i] + splitter
+			splitted_words = modified_words[i] + '-' + modified_words[half+i] + '-' + splitter
 			split[0]='B'
 			split[leni-1]='E'
 			split[leni]='B'
@@ -100,12 +100,185 @@ def really_trick():
 			count = count+1
 			csvwriter.writerow(words + list(''.join(list(compound_word))) + split)	
 		# 简易进度条
-		print("进度: ======={0}%".format(round((i + 1) * 100 / half)), end="\r")
+		print("2 grams 进度: ======={0}%".format(round((i + 1) * 100 / half)), end="\r")
+		time.sleep(0.01)
+	print("2 grams count is %d " % count)
+
+def trick_in_format(n_grams=3):
+	# 追加写的方式
+	cheat_splitting_file_csv= open(CHEAT_SPLITTING_FILE, 'a', newline='')
+	csvwriter = csv.writer(cheat_splitting_file_csv)
+	distractors = ['.', ':', '_', '~']
+	distractors = distractors + list(string.digits)
+	# distractors = distractors + list(string.ascii_letters) + list(string.digits)
+	all_lines = open(ORACLE_FILE).readlines()
+	all_words = []
+	for line in all_lines:
+		data = line.split(' ')
+		identifier = data[6]
+		words = identifier.split("-")
+		all_words = all_words + words
+	# 去除重复项 不过不会保持原来的顺序
+	all_words = list(set(all_words))
+	num_of_all_words = len(all_words)
+	modified_words = []
+	for word in all_words:
+		modified_words.append(word)
+		modified_words.append(word.lower())
+		modified_words.append(word.upper())
+		modified_words.append(word.capitalize())
+	random.shuffle(modified_words)
+	third = len(modified_words) // 3
+	count = 0
+	for i in range(third):
+		split_position = random.randint(0,4)
+		splitter_index = random.randint(0,len(distractors)-1)
+		splitter = distractors[splitter_index]
+		split = ['M'] * (len(modified_words[i]+modified_words[third+i] + modified_words[2*third+i]))
+		leni = len(modified_words[i])
+		lenj = len(modified_words[third+i])
+		lenk = len(modified_words[2*third+i])
+		# TODO:需要用优雅的方式处理
+		# 方法一：利用字符串下标
+		# 利用统一式子
+		if split_position == 0:
+			compound_words = modified_words[i] + modified_words[third+i] + modified_words[2*third+i]
+			splitted_words = modified_words[i] + '-' + modified_words[third+i] + '-' + modified_words[2*third+i]
+			split[0] = 'B'
+			split[leni-1] = 'E'
+			split[leni] = 'B'
+			split[leni+lenj-1] = 'E'
+			split[leni+lenj] = 'B'
+			split[leni+lenj+lenk-1] = 'E'
+		elif split_position == 1:
+			split.append('E')
+			compound_words = splitter + modified_words[i] + modified_words[third+i] + modified_words[2*third+i]
+			splitted_words = splitter + '-' + modified_words[i] + '-' + modified_words[third+i] + '-' + modified_words[2*third+i]
+			split[0]='S'
+			split[1]='B'
+			split[leni]='E'
+			split[leni+1]='B'
+			split[leni+lenj]='E'
+			split[leni+lenj+1] = 'B'
+		elif split_position == 2:
+			split.append('E')
+			compound_words = modified_words[i] + splitter + modified_words[third+i] + modified_words[2*third+i]
+			splitted_words = modified_words[i] + '-' + splitter + '-' + modified_words[third+i] + '-' + modified_words[2*third+i]
+			split[0]='B'
+			split[leni-1]='E'
+			split[leni]='S'
+			split[leni+1]='B'
+			split[leni+lenj] = 'E'
+			split[leni+lenj+1] ='B'
+		elif split_position == 3:
+			split.append('E')
+			compound_words = modified_words[i] + modified_words[third+i] + splitter + modified_words[2*third+i]
+			splitted_words = modified_words[i] + '-' + modified_words[third+i] + '-' + splitter + '-' +  modified_words[2*third+i]
+			split[0]='B'
+			split[leni-1]='E'
+			split[leni]='B'
+			split[leni+lenj-1]='E'
+			split[leni+lenj] = 'S'
+			split[leni+lenj+1] ='B'
+		else:
+			split.append('S')
+			compound_words = modified_words[i] + modified_words[third+i] + modified_words[2*third+i] + splitter
+			splitted_words = modified_words[i] + '-' + modified_words[third+i] + '-' + modified_words[2*third+i] + '-' + splitter
+			split[0]='B'
+			split[leni-1]='E'
+			split[leni]='B'
+			split[leni+lenj-1]='E'
+			split[leni+lenj] = 'B'
+			split[leni+lenj+lenk-1] = 'E'
+		spare = 25 - len(compound_words)
+		# 不一定每次都是6699小于25的
+		if spare > 0 :
+			compound_word = compound_words
+			for k in range(spare):
+				compound_word = compound_word + ' '
+				split.append('N')
+			# split_results.append([compound_words, splitted_words, list(''.join(list(compound_word))) , list(''.join(str(split))) ])
+			words = []
+			words.append(compound_words)
+			words.append(splitted_words)
+			count = count+1
+			csvwriter.writerow(words + list(''.join(list(compound_word))) + split)	
+		# 简易进度条
+		print("3 grams 进度: ======={0}%".format(round((i + 1) * 100 / third)), end="\r")
 		time.sleep(0.01)
 	df = pd.read_csv("tmp/oracle_samples.csv",header=None)
 	print(df.values.shape[0])
-	print(count)
+	print("3 grams count is %d " % count)
 	csvwriter.writerows(df.values)
+
+def trick_on_one():
+	cheat_splitting_file_csv= open(CHEAT_SPLITTING_FILE, 'w+', newline='')
+	csvwriter = csv.writer(cheat_splitting_file_csv)
+	distractors = ['.', ':', '_', '~']
+	distractors = distractors + list(string.digits)
+	# distractors = distractors + list(string.ascii_letters) + list(string.digits)
+	all_lines = open(ORACLE_FILE).readlines()
+	all_words = []
+	for line in all_lines:
+		data = line.split(' ')
+		identifier = data[6]
+		words = identifier.split("-")
+		all_words = all_words + words
+	# 去除重复项 不过不会保持原来的顺序
+	all_words = list(set(all_words))
+	num_of_all_words = len(all_words)
+	modified_words = []
+	for word in all_words:
+		modified_words.append(word)
+		modified_words.append(word.lower())
+		modified_words.append(word.upper())
+		modified_words.append(word.capitalize())
+	random.shuffle(modified_words)
+	count = 0
+	for i in range(len(modified_words)):
+		split_position = random.randint(0,2)
+		splitter_index = random.randint(0,len(distractors)-1)
+		splitter = distractors[splitter_index]
+		split = ['M'] * (len(modified_words[i]))
+		leni = len(modified_words[i])
+		if leni == 1:
+			continue
+		if split_position == 0:
+			compound_words = modified_words[i]
+			splitted_words = modified_words[i]
+			split[0] = 'B'
+			split[leni-1] = 'E'
+		elif split_position == 1:
+			split.append('E')
+			compound_words = splitter + modified_words[i]
+			splitted_words = splitter + '-' + modified_words[i]
+			split[0]='S'
+			split[1]='B'
+		elif split_position == 2:
+			split.append('S')
+			compound_words = modified_words[i] + splitter
+			splitted_words = modified_words[i] + '-' + splitter
+			split[0]='B'
+			split[leni-1]='E'
+		spare = 25 - len(compound_words)
+		# 不一定每次都是6699小于25的
+		if spare > 0 :
+			compound_word = compound_words
+			for k in range(spare):
+				compound_word = compound_word + ' '
+				split.append('N')
+			# split_results.append([compound_words, splitted_words, list(''.join(list(compound_word))) , list(''.join(str(split))) ])
+			words = []
+			words.append(compound_words)
+			words.append(splitted_words)
+			count = count+1
+			csvwriter.writerow(words + list(''.join(list(compound_word))) + split)	
+		# 简易进度条
+		print("1 gram: 进度: ======={0}%".format(round((i + 1) * 100 / len(modified_words))), end="\r")
+		time.sleep(0.01)
+	print("1 gram count is %d " % count)
+
+
 
 def trick_on_dataset():
 	cheat_splitting_file_csv= open(CHEAT_SPLITTING_FILE, 'w', newline='')
@@ -202,4 +375,6 @@ def preprocess_normal_english_words():
 if __name__ == '__main__':
 	# preprocess_normal_english_words()
 	# trick_on_dataset()
+	trick_on_one()
 	really_trick()
+	trick_in_format()
