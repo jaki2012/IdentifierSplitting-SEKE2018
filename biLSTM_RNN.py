@@ -380,7 +380,7 @@ class SmallConfig(object):
 	num_steps = 25
 	hidden_size = 200
 	max_epoch = 4
-	max_max_epoch = 13
+	max_max_epoch = 10
 	keep_prob = 1.0
 	lr_decay = 0.5
 	batch_size = 20
@@ -437,7 +437,7 @@ def run_epoch(session, model, data, eval_op, verbose, epoch_size, Name="NOFOCUS"
 	return np.exp(costs/iters)
 
 def get_result(session, model, data, eval_op, verbose, epoch_size):
-	result_csv_name = "tmp/" + FLAGS.train_option + '_' + 'crf' + FLAGS.crf_option + 'iter'+ FLAGS.iteration + FLAGS.shuffle +'biLSTMResult.csv'
+	result_csv_name = "tmp/" + FLAGS.train_option + '_' + 'crf' + str(FLAGS.crf_option) + 'iter'+ str(FLAGS.iteration) + str(FLAGS.shuffle) +'biLSTMResult.csv'
 	result_csv = open(result_csv_name, 'w+')
 	csvwriter= csv.writer(result_csv)
 	batch_size = 20

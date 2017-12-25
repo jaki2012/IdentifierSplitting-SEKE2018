@@ -1,10 +1,13 @@
 from enchant.tokenize import get_tokenizer
 import pandas as pd
 import csv
+import os
 import itertools
 import numpy as np
 import time 
+import string
 import random
+import re
 from sklearn.preprocessing import LabelEncoder
 
 CHEAT_FILE = "tmp/cheat_file.csv"
@@ -12,6 +15,8 @@ CHEAT_SPLITTING_FILE = "tmp/cheat_splitting_file1.csv"
 CODED_FILE = "tmp/coded_file.csv"
 
 RESULT_FILE = "tmp/final_result.csv"
+EXPERI_DATA_PATH = "tmp/experi_data"
+EXPERI_RESULT_FILE = "tmp/experi_result.csv"
 
 df = pd.read_csv("tmp/cheat_splitting_file.csv", header=None)
 total_dict = df.values[:, 2:27]
@@ -27,7 +32,7 @@ id2word = pd.Series(set_words, index=set_ids)
 tag2id = pd.Series(tag_ids, index=tags)
 id2tag = pd.Series(tags, index=tag_ids)
 
-def cal_accuracy():
+def cal_accuracy(verbose=False):
 	df = pd.read_csv("tmp/final_result.csv", header=None)
 	correct_answer = df.values[:, :25]
 	total_result = df.values[:, 25:]
@@ -37,12 +42,12 @@ def cal_accuracy():
 	# 准确的数目
 	right_sum = 0
 	incorrect_index = []
-	print(lenresults)
+	# print(lenresults)
 	a = []
 	for i in range(lenresults):
 		a.append(''.join(correct_answer[i]))
 	b= list(set(a))
-	print(len(b))
+	# print(len(b))
 	for j in range(lenresults):
 		right = True
 		list1 = labels[j]
@@ -64,20 +69,20 @@ def cal_accuracy():
 			right_sum  = right_sum +1
 		else:
 			incorrect_index.append(j)
-			print(''.join(correct_answer[j]))
-			print(''.join(list1))
-			print(''.join(list2))
-		# 简易进度条
-		# print("进度: ======={0}%".format(round((j + 1) * 100 / (lenresults))), end="\r")
-		# time.sleep(0.01)
-	print("Accuracy is %.3f" % (right_sum/lenresults))
-	print("incorrect splitting %d / %d" %(len(incorrect_index), lenresults))
+			if verbose:
+				print(''.join(correct_answer[j]))
+				print(''.join(list1))
+				print(''.join(list2))
+	if verbose:
+		print("Accuracy is %.3f" % (right_sum/lenresults))
+		print("incorrect splitting %d / %d" %(len(incorrect_index), lenresults))
+	return round((right_sum/lenresults),3)
 	# for i in range(len(incorrect_index)):
 	# 	print(correct_answer[incorrect_index[i]][0])
 	# 	print(''.join(list1))
 	# 	print(''.join(list2))
 
-def vec2word():
+def vec2word(file):
 	# df = pd.read_csv("tmp/sample1.csv", header=None)
 	# total_dict = df.values[:, 2:]
 	# lendict = total_dict.shape[0]
@@ -98,7 +103,7 @@ def vec2word():
 	result_csv = open(RESULT_FILE, 'w', newline='')
 	csvwriter = csv.writer(result_csv)
 	
-	df1 = pd.read_csv("tmp/pure_corpus_biLSTMResult.csv", header=None)
+	df1 = pd.read_csv(file, header=None)
 	lendict = df1.values.shape[0]
 	total_word_id_list = list(itertools.chain.from_iterable(df1.values[:, :25]))
 	total_tag_id_list = list(itertools.chain.from_iterable(df1.values[:, 25:50]))
@@ -213,9 +218,53 @@ def trick_on_dataset():
 		time.sleep(0.01)
 	# csvwriter.writerows(split_results)
 	# print(split_results)
+
+def scan_experi_data():
+	experi_results = []
+	experi_results_csv = open(EXPERI_RESULT_FILE, 'w+', newline='')
+	csvwriter = csv.writer(experi_results_csv)
+	i = 0
+	for path, subpaths, files in os.walk(EXPERI_DATA_PATH):
+		for file in files:
+			vec2word(os.path.join(path, file))
+			accuracy = cal_accuracy()
+			# 后向断言
+			pattern_train_option = re.compile(r'.*?(?=_crf)')
+			# 前向断言用search
+			pattern_cnn_option = re.compile(r'(?<=_crf).*(?=iter)')
+			pattern_shuffle_option = re.compile(r'(?<=iter).*(?=bi)')
+			pattern_iter_option = re.compile(r'(?<=iter)(\d)*(?=\S)')
+
+			m1 = pattern_train_option.search(file)
+			m2 = pattern_cnn_option.search(file)
+			m3 = pattern_shuffle_option.search(file)
+			m4 = pattern_iter_option.search(file)
+
+			if m1:
+				i = i + 1
+				# print(i)
+				# look-behind requires fixed-width pattern in python 
+				# print(m1.group(), m2.group(), m3.group().strip(string.digits), m4.group())
+				# print(accuracy)
+				# 转化为int才能排序
+				experi_results.append((i, m1.group(), m2.group(), m3.group().strip(string.digits), int(m4.group()), accuracy))
+				# csvwriter.writerow((i, m1.group(), m2.group(), m3.group().strip(string.digits), m4.group(), accuracy))
+
+	for train_option in ["pure_corpus", "mixed", "pure_oracle"]:
+		for shuffle_option in ["True", "False"]:
+			for cnn_option in range(1, 4):
+				temp_group = []
+				for experi_result in experi_results:
+					if train_option == experi_result[1] and shuffle_option == experi_result[3] and str(cnn_option) == experi_result[2]:
+						temp_group.append(experi_result)
+				temp_group.sort(key=lambda x: x[4])
+				print(temp_group)
+				csvwriter.writerows(temp_group)
+
+
 if __name__ == '__main__':
-	word2vec(total_dict_list)
+	# word2vec(total_dict_list)
 	# vec2word()
 	# cal_accuracy()
 	# trick_on_dataset()
-	# print()
+	scan_experi_data()
