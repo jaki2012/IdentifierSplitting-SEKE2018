@@ -437,7 +437,7 @@ def run_epoch(session, model, data, eval_op, verbose, epoch_size, Name="NOFOCUS"
 	return np.exp(costs/iters)
 
 def get_result(session, model, data, eval_op, verbose, epoch_size):
-	result_csv_name = "tmp/" + FLAGS.train_option + '_' + 'crf' + str(FLAGS.crf_option) + 'iter'+ str(FLAGS.iteration) + str(FLAGS.shuffle) +'biLSTMResult.csv'
+	result_csv_name = "tmp/experi_data" + FLAGS.train_option + '_' + 'crf' + str(FLAGS.crf_option) + 'iter'+ str(FLAGS.iteration) + str(FLAGS.shuffle) +'biLSTMResult.csv'
 	result_csv = open(result_csv_name, 'w+')
 	csvwriter= csv.writer(result_csv)
 	batch_size = 20

@@ -1,4 +1,5 @@
 from enchant.tokenize import get_tokenizer
+from wordsegment import load, segment
 import pandas as pd
 import csv
 import os
@@ -219,6 +220,82 @@ def trick_on_dataset():
 	# csvwriter.writerows(split_results)
 	# print(split_results)
 
+def sort_experi_accuracies():
+	results = []
+	for train_option in ["pure_corpus", "mixed", "pure_oracle"]:
+		for shuffle_option in ["True", "False"]:
+			for cnn_option in range(1,4):
+				accuracy = analyze_accuracy(train_option=train_option, shuffle_option=shuffle_option, cnn_option=cnn_option)
+				results.append((train_option, shuffle_option, cnn_option, accuracy))
+
+	results.sort(key=lambda x:x[3], reverse=True)
+	for result in results:
+		print(result)
+
+
+def calculate_wordsegment_accuracy(verbose=False):
+
+	def isNotSpecicalCharacter(part):
+		if part in ['.', ':', '_', '~']:
+			return False
+		else:
+			return True
+	# wordsegment字典载入
+	load()
+	df = pd.read_csv("tmp/cheat_splitting_file.csv", header=None)
+	identifiers = list(itertools.chain.from_iterable(df.values[34355:, 0:1]))
+	splitted_identifiers = list(itertools.chain.from_iterable(df.values[34355:, 1:2]))
+	lendata = len(identifiers)
+	count = 0
+	for i in range(lendata):
+		wrong_split = True
+		splitted_identifier = (splitted_identifiers[i]).lower()
+		parts = splitted_identifier.split('-')
+		condition = lambda part : part not in ['.', ':', '_', '~']
+		parts = [x for x in filter(condition, parts)]
+		wordsegmet_results = segment(identifiers[i])
+		if len(parts) == len(wordsegmet_results):
+			difference = list(set(parts).difference(set(wordsegmet_results)))
+			if len(difference) == 0:
+				count = count + 1
+				wrong_split = False
+		if verbose and wrong_split:
+			print(parts)
+			print(wordsegmet_results)
+
+	print(count/lendata)
+
+
+
+# train_option, cnn_option, shuffle
+def analyze_accuracy(train_option=None, cnn_option=None, shuffle_option=None):
+	if shuffle_option:
+		shuffle_option = "True"
+	else:
+		shuffle_option = "False"
+	experi_accuracies = []
+	df = pd.read_csv("tmp/experi_result.csv", header=None)
+	data = df.values
+	lendata = len(data)
+	count = 0
+	for i in range(lendata):
+		if train_option != None and train_option != data[i][1]:
+			continue
+		if cnn_option != None and cnn_option != data[i][2]:
+			continue
+		if shuffle_option != None and shuffle_option != str(data[i][3]):
+			continue
+		experi_accuracies.append(data[i][5])
+		count = count + 1
+	total_acc_score = 0
+	for i in experi_accuracies:
+		total_acc_score = total_acc_score + i
+
+	return (total_acc_score/count)
+
+
+
+
 def scan_experi_data():
 	experi_results = []
 	experi_results_csv = open(EXPERI_RESULT_FILE, 'w+', newline='')
@@ -258,7 +335,6 @@ def scan_experi_data():
 					if train_option == experi_result[1] and shuffle_option == experi_result[3] and str(cnn_option) == experi_result[2]:
 						temp_group.append(experi_result)
 				temp_group.sort(key=lambda x: x[4])
-				print(temp_group)
 				csvwriter.writerows(temp_group)
 
 
@@ -267,4 +343,7 @@ if __name__ == '__main__':
 	# vec2word()
 	# cal_accuracy()
 	# trick_on_dataset()
-	scan_experi_data()
+	# scan_experi_data()
+	# sort_experi_accuracies()
+	calculate_wordsegment_accuracy(False)
+

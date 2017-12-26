@@ -25,7 +25,7 @@ do
 					echo "$python_exec_cmd --train_option $train_option --crf_option $crf_option --iteration $iter --shuffle $shuffle_option"
 					((actual_step++))
 				else
-					echo "experiment for [train_option=$train_option, cnn_option=$cnn_option, shuffle_option] already exists, so skip it..."
+					echo "experiment for [train_option=$train_option, cnn_option=$cnn_option, shuffle_option=$shuffle_option] \n already exists, so skip it..."
 				fi
 				echo ""
 			done
