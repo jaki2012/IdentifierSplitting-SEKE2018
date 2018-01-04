@@ -28,6 +28,7 @@ sr_allwords = pd.Series(total_dict_list)
 sr_allwords = sr_allwords.value_counts()
 set_words = sr_allwords.index
 set_ids = range(0, len(set_words))
+print(len(set_words))
 tags = [ 'N', 'B', 'M', 'E', 'S']
 tag_ids = range(len(tags))
 word2id = pd.Series(set_ids, index=set_words)
@@ -49,8 +50,10 @@ def cal_accuracy(verbose=False):
 	a = []
 	for i in range(lenresults):
 		a.append(''.join(correct_answer[i]))
-	b= list(set(a))
-	print(len(b))
+	b= len(set(a))
+	print(len(a))
+	print(b)
+	# print(len(b))
 	for j in range(lenresults):
 		right = True
 		list1 = labels[j]
@@ -140,6 +143,13 @@ def word2vec(total_dict_list, dict_way=False):
 		total_tag_list = list(itertools.chain.from_iterable(df.values[:, 32:62]))
 		tag_ids = coding(total_tag_list, tag2id)
 		# print(tag_ids[:400])
+		# print(lendict)
+		# ddd = np.array(word_ids).reshape(lendict,30)
+		# kkk = []
+		# for i in range(20521):
+		# 	kkk.append(ddd[i])
+		# print(kkk)
+		# print(len(set(kkk)))
 		csvwriter.writerows(np.column_stack((np.array(word_ids).reshape(lendict,30), np.array(tag_ids).reshape(lendict,30))))
 
 def coding(words, projection):
@@ -308,6 +318,7 @@ def scan_experi_data():
 			if os.path.join(path, file).find(".csv")==-1:
 				continue
 			vec2word(os.path.join(path, file))
+			print(os.path.join(path, file))
 			accuracy = cal_accuracy()
 			print(accuracy)
 			# 后向断言
@@ -344,11 +355,11 @@ def scan_experi_data():
 
 
 if __name__ == '__main__':
-	# word2vec(total_dict_list)
+	word2vec(total_dict_list)
 	# vec2word()
 	# cal_accuracy()
 	# trick_on_dataset()
-	scan_experi_data()
+	# scan_experi_data()
 	# sort_experi_accuracies()
 	# calculate_wordsegment_accuracy(False)
 	# print(analyze_accuracy(train_option="mixed", cnn_option=3, shuffle_option=True))

@@ -9,13 +9,13 @@ shuffle_options=(True)
 python_exec_cmd="python biLSTM_RNN.py"
 
 
-for train_option in ${train_options[*]}
+for iter in {1..10}
 do
 	for cnn_option in ${cnn_options[*]}
 	do
 		for shuffle_option in ${shuffle_options[*]}
 		do
-			for iter in {1..10}
+			for train_option in ${train_options[*]}
 			do
 				((step++))
 				echo "step $step--------------"

@@ -84,9 +84,10 @@ def get_rawdata(path):
 		train_data = data[:17000, :]
 		shuffle_data = data[17000:, :]
 		if FLAGS.shuffle:
-			random.shuffle(shuffle_data)
-		valid_data = shuffle_data[:2000, :]
-		test_data = shuffle_data[2000:, :]
+			random_ind = list(range(0, len(shuffle_data)))
+			random.shuffle(random_ind)
+		valid_data = shuffle_data[random_ind[:2000], :]
+		test_data = shuffle_data[random_ind[2000:], :]
 	elif FLAGS.train_option == "mixed":
 		# 配置二
 		train_data = data[:32355, :]
@@ -504,6 +505,13 @@ def main(argv=None):
 	
 
 	test_data_len = len(test_data)
+	print(test_data_len)
+	a =[]
+	for i in range(test_data_len):
+		a.append("+".join(str(test_data[i][:30])))
+	print("==")
+	print(len(a))
+	print(len(set(a)))
 	test_batch_len = test_data_len // eval_config.batch_size
 	# test_epoch_size = (test_batch_len - 1) // EVAL_NUM_STEP
 

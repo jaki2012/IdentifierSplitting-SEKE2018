@@ -27,6 +27,7 @@ raw_data = df.values
 count = 0
 wait_to_shuffle =[]
 checkss= [] 
+dddsss = []
 for line in range(len(raw_data)):
 	count = count + 1
 	data = raw_data[line]
@@ -80,13 +81,12 @@ for line in range(len(raw_data)):
 		split =split+ tmp
 
 	orgdata = []
-	orgdata.append(temp_save)
+	orgdata.append(data1)
 	orgdata.append(data2)
 	if len(data1) > 30:
 		continue
 	else:
 		spare = 30 - len(data1)
-		datad = data1
 		# if data1=="_locale":
 		# 	print(spare)
 		for g in range(spare):
@@ -114,10 +114,13 @@ for line in range(len(raw_data)):
 		# print("data1: " + temp_save)
 		# print("sequl: " + ''.join(split))
 		# print("====")
+		if(orgdata[0] in dddsss):
+			continue
+		dddsss.append(orgdata[0])
 		wait_to_shuffle.append(orgdata + list(''.join(list(data1))) + list(''.join(split)) )
 		# writer.writerow(orgdata + list(''.join(list(data1))) + list(''.join(split)) )
 print(count)
-print(len(checkss))
-print(len(set(checkss)))
+print(len(dddsss))
+print(len(set(dddsss)))
 random.shuffle(wait_to_shuffle)
 writer.writerows(wait_to_shuffle)

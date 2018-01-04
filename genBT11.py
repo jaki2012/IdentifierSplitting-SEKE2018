@@ -1,5 +1,6 @@
 import os
 import csv
+import pandas as pd
 
 BT11_TESTS_SET_PATH = "/Users/lijiechu/Documents/huawei2/tests"
 DATACSV = "tmp/bt11_data.csv"
@@ -19,6 +20,15 @@ for path, subpaths, files in os.walk(BT11_TESTS_SET_PATH):
 				continue
 			bt11_datas.append(bt11_data)
 with open(DATACSV, "w") as datacsv:
+	df = pd.read_csv(REPEAT_DATACSV, header=None)
+	vl = df.values
+	c = []
+	d = []
+	e = []
+	for i in range(len(vl)):
+		c.append(vl[i][0])
+		d.append(vl[i][1])
+		e.append(vl[i][2])
 	print(len(bt11_datas))
 	print(len(set(bt11_datas)))
 	a = []
@@ -26,7 +36,6 @@ with open(DATACSV, "w") as datacsv:
 	repeat_count = 0
 	final_datas = [x.split('\t') for x in set(bt11_datas)]
 	final_final_datas = []
-	repeat_datas = []
 	for i in range(len(final_datas)):
 		if final_datas[i][0] not in a:
 			a.append(final_datas[i][0])
@@ -34,12 +43,32 @@ with open(DATACSV, "w") as datacsv:
 			final_final_datas.append([final_datas[i][0],final_datas[i][1]])
 		else:
 			index = a.index(final_datas[i][0])
+			# 重复了三次日
+			if(final_datas[i][0]=="FNAME_TOKEN"):
+				final_final_datas[index] = [final_datas[i][0],"f-name-token"]
+				continue
+			which = 0
+			if b[index] in c:
+				index_c = c.index(b[index])
+				which = index_c
+			elif b[index] in d:
+				index_d = d.index(b[index])
+				which = index_d
+			else:
+				print(b[index])
+				print("haha")
+			if(e[which] == 1):
+				final_final_datas[index] = [final_datas[i][0],c[which]]
+			elif(e[which] == 2):
+				final_final_datas[index] = [final_datas[i][0],d[which]]
+			else:
+				print("??")
 			repeat_count = repeat_count + 1
-			repeat_datas.append([b[index],final_datas[i][1]])
+			# repeat_datas.append([b[index],final_datas[i][1]])
 	print(len(a))
 	print(repeat_count)
 	csvwriter = csv.writer(datacsv)
 	csvwriter.writerows(final_final_datas)
-	with open(REPEAT_DATACSV,"w") as repeatdatacsv:
-		csvwriter = csv.writer(repeatdatacsv)
-		csvwriter.writerows(repeat_datas)
+	# with open(REPEAT_DATACSV,"w") as repeatdatacsv:
+	# 	csvwriter = csv.writer(repeatdatacsv)
+	# 	csvwriter.writerows(repeat_datas)
