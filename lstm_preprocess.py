@@ -17,10 +17,12 @@ CODED_FILE = "tmp/coded_file.csv"
 
 RESULT_FILE = "tmp/final_result.csv"
 EXPERI_DATA_PATH = "tmp/experi_data"
+BT11_EXPERI_DATA_PATH = "tmp/bt11_experi_data"
 EXPERI_RESULT_FILE = "tmp/experi_result.csv"
+BT11_EXPERI_RESULT_FILE = "tmp/bt11_experi_result.csv"
 
-df = pd.read_csv("tmp/cheat_splitting_file.csv", header=None)
-total_dict = df.values[:, 2:27]
+df = pd.read_csv("tmp/bt11_oracle_samples.csv", header=None)
+total_dict = df.values[:, 2:32]
 total_dict_list = list(itertools.chain.from_iterable(total_dict))
 sr_allwords = pd.Series(total_dict_list)
 sr_allwords = sr_allwords.value_counts()
@@ -35,11 +37,11 @@ id2tag = pd.Series(tags, index=tag_ids)
 
 def cal_accuracy(verbose=False):
 	df = pd.read_csv("tmp/final_result.csv", header=None)
-	correct_answer = df.values[:, :25]
-	total_result = df.values[:, 25:]
+	correct_answer = df.values[:, :30]
+	total_result = df.values[:, 30:]
 	lenresults = total_result.shape[0]
-	labels = total_result[:, :25]
-	logits = total_result[:, 25:]
+	labels = total_result[:, :30]
+	logits = total_result[:, 30:]
 	# 准确的数目
 	right_sum = 0
 	incorrect_index = []
@@ -48,7 +50,7 @@ def cal_accuracy(verbose=False):
 	for i in range(lenresults):
 		a.append(''.join(correct_answer[i]))
 	b= list(set(a))
-	# print(len(b))
+	print(len(b))
 	for j in range(lenresults):
 		right = True
 		list1 = labels[j]
@@ -106,22 +108,22 @@ def vec2word(file):
 	
 	df1 = pd.read_csv(file, header=None)
 	lendict = df1.values.shape[0]
-	total_word_id_list = list(itertools.chain.from_iterable(df1.values[:, :25]))
-	total_tag_id_list = list(itertools.chain.from_iterable(df1.values[:, 25:50]))
-	total_tag_id_list1 = list(itertools.chain.from_iterable(df1.values[:, 50:]))
+	total_word_id_list = list(itertools.chain.from_iterable(df1.values[:, :30]))
+	total_tag_id_list = list(itertools.chain.from_iterable(df1.values[:, 30:60]))
+	total_tag_id_list1 = list(itertools.chain.from_iterable(df1.values[:, 60:]))
 	words = coding(total_word_id_list, id2word)
 	tags = coding(total_tag_id_list, id2tag)
 	tags1 = coding(total_tag_id_list1, id2tag)
 	csvwriter.writerows(np.column_stack((
-		np.array(words).reshape(lendict,25), 
-		np.array(tags).reshape(lendict,25), 
-		np.array(tags1).reshape(lendict,25))))
+		np.array(words).reshape(lendict,30), 
+		np.array(tags).reshape(lendict,30), 
+		np.array(tags1).reshape(lendict,30))))
 	# csvwriter.writerows(final_result)
 
 def word2vec(total_dict_list, dict_way=False):
 	coded_file = open(CODED_FILE, 'w', newline='')
 	csvwriter = csv.writer(coded_file)
-	df = pd.read_csv("tmp/cheat_splitting_file.csv", header=None)
+	df = pd.read_csv("tmp/bt11_oracle_samples.csv", header=None)
 	total_dict = df.values[:, 2:]
 	lendict = total_dict.shape[0]
 	if dict_way:
@@ -131,14 +133,14 @@ def word2vec(total_dict_list, dict_way=False):
 		#获取vocabsize
 		print(len(le.classes_))
 		le_total_dict_list = le.transform(total_dict_list)
-		le_total_dict = np.array(le_total_dict_list).reshape(lendict,50)
+		le_total_dict = np.array(le_total_dict_list).reshape(lendict,60)
 		csvwriter.writerows(le_total_dict)
 	else:
 		word_ids = coding(total_dict_list, word2id)
-		total_tag_list = list(itertools.chain.from_iterable(df.values[:, 27:52]))
+		total_tag_list = list(itertools.chain.from_iterable(df.values[:, 32:62]))
 		tag_ids = coding(total_tag_list, tag2id)
 		# print(tag_ids[:400])
-		csvwriter.writerows(np.column_stack((np.array(word_ids).reshape(lendict,25), np.array(tag_ids).reshape(lendict,25))))
+		csvwriter.writerows(np.column_stack((np.array(word_ids).reshape(lendict,30), np.array(tag_ids).reshape(lendict,30))))
 
 def coding(words, projection):
 	ids = list(projection[words])
@@ -298,17 +300,20 @@ def analyze_accuracy(train_option=None, cnn_option=None, shuffle_option=None):
 
 def scan_experi_data():
 	experi_results = []
-	experi_results_csv = open(EXPERI_RESULT_FILE, 'w+', newline='')
+	experi_results_csv = open(BT11_EXPERI_RESULT_FILE, 'w+', newline='')
 	csvwriter = csv.writer(experi_results_csv)
 	i = 0
-	for path, subpaths, files in os.walk(EXPERI_DATA_PATH):
+	for path, subpaths, files in os.walk(BT11_EXPERI_DATA_PATH):
 		for file in files:
+			if os.path.join(path, file).find(".csv")==-1:
+				continue
 			vec2word(os.path.join(path, file))
 			accuracy = cal_accuracy()
+			print(accuracy)
 			# 后向断言
 			pattern_train_option = re.compile(r'.*?(?=_crf)')
 			# 前向断言用search
-			pattern_cnn_option = re.compile(r'(?<=_crf).*(?=iter)')
+			pattern_cnn_option = re.compile(r'(?<=_cnn).*(?=iter)')
 			pattern_shuffle_option = re.compile(r'(?<=iter).*(?=bi)')
 			pattern_iter_option = re.compile(r'(?<=iter)(\d)*(?=\S)')
 
@@ -343,7 +348,8 @@ if __name__ == '__main__':
 	# vec2word()
 	# cal_accuracy()
 	# trick_on_dataset()
-	# scan_experi_data()
+	scan_experi_data()
 	# sort_experi_accuracies()
-	calculate_wordsegment_accuracy(False)
+	# calculate_wordsegment_accuracy(False)
+	# print(analyze_accuracy(train_option="mixed", cnn_option=3, shuffle_option=True))
 

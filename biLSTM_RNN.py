@@ -38,8 +38,8 @@ flags.DEFINE_string(
 	"The options detemining how to compose the data")
 
 flags.DEFINE_integer(
-	"crf_option", 1,
-	"ways to conduct crf option")
+	"cnn_option", 1,
+	"ways to conduct cnn option")
 
 flags.DEFINE_integer(
 	"iteration", 1,
@@ -59,8 +59,8 @@ def shared(shape, name):
 		return tf.get_variable(name, shape, tf.float32, tf.random_uniform_initializer(-drange, drange))
 
 def get_feeddata(session, i, data, batch_size, num_steps):
-	sequence = data[:, :25]
-	label = data[:, -25:]
+	sequence = data[:, :30]
+	label = data[:, -30:]
 	x = tf.strided_slice(sequence, [i * batch_size, 0], [(i+1) * batch_size, num_steps])
 	x.set_shape([batch_size, num_steps])
 	y = tf.strided_slice(label, [i * batch_size, 0], [(i+1) * batch_size, num_steps])
@@ -81,8 +81,8 @@ def get_rawdata(path):
 
 	if FLAGS.train_option == "pure_corpus":
 		# 配置一
-		train_data = data[:32355, :]
-		shuffle_data = data[32355:, :]
+		train_data = data[:17000, :]
+		shuffle_data = data[17000:, :]
 		if FLAGS.shuffle:
 			random.shuffle(shuffle_data)
 		valid_data = shuffle_data[:2000, :]
@@ -146,7 +146,7 @@ class PTBModel(object):
 			inputs = tf.nn.embedding_lookup(embedding, self._input_data)
 
 		
-		if FLAGS.crf_option != 1:
+		if FLAGS.cnn_option != 1:
 			with tf.variable_scope("CNN"):
 				reshaped_inputs = tf.reshape(inputs, [batch_size, num_steps, -1, 1])
 				# reshaped_inputs.shape[2] is actually 200
@@ -162,13 +162,13 @@ class PTBModel(object):
 		self.length = tf.reduce_sum(tf.sign(self._input_data), reduction_indices=1)
 		self.length = tf.cast(self.length, tf.int32)
 
-		if FLAGS.crf_option == 2:
+		if FLAGS.cnn_option == 2:
 			inputs1 = relu
 			inputs = tf.concat([inputs, inputs1], 2)
 			size = size * 2
 # ========================= CNN BILSTM
 
-		if FLAGS.crf_option == 3:
+		if FLAGS.cnn_option == 3:
 			inputs1 = relu
 			if is_trainning and config.keep_prob < 1:
 				inputs1 = tf.nn.dropout(relu, config.keep_prob)
@@ -235,13 +235,13 @@ class PTBModel(object):
 		# output = tf.reshape(tf.concat(outputs,1 ), [-1, size])
 		output = tf.reshape(tf.concat(outputs, 1), [-1, size * 2])
 
-		if FLAGS.crf_option == 3:
+		if FLAGS.cnn_option == 3:
 			size = size * 2
 			final_output = tf.concat([output, output1], 1)
 		
 		weight = tf.get_variable("weight", [size * 2, 5], dtype=data_type())
 		bias = tf.get_variable("bias", [5], dtype=data_type())
-		if FLAGS.crf_option !=3:
+		if FLAGS.cnn_option !=3:
 			logits = tf.matmul(output, weight) + bias
 		else:
 			logits = tf.matmul(final_output, weight) + bias
@@ -377,15 +377,15 @@ class SmallConfig(object):
 	max_grad_norm = 5
 	num_layers = 2
 	# num_steps设置为单词的长度
-	num_steps = 25
+	num_steps = 30
 	hidden_size = 200
 	max_epoch = 4
-	max_max_epoch = 10
+	max_max_epoch = 13
 	keep_prob = 1.0
 	lr_decay = 0.5
 	batch_size = 20
 	# default 100
-	vocab_size = 67
+	vocab_size = 65
 	num_classes = 5
 
 def decode(logits, lengths, matrix):
@@ -405,8 +405,8 @@ def decode(logits, lengths, matrix):
 		logits = np.concatenate([score, pad], axis=1)
 		logits = np.concatenate([start, logits], axis=0)
 		path, _ = viterbi_decode(logits, matrix)
-		if len(path) < 26:
-			for i in range(26 -len(path)):
+		if len(path) < 31:
+			for i in range(31 -len(path)):
 				path.append(0)
 		paths.append(path[1:])
 	# 搞了半天是自己搞错了草
@@ -433,15 +433,14 @@ def run_epoch(session, model, data, eval_op, verbose, epoch_size, Name="NOFOCUS"
 		iters += model.num_steps
 		if verbose and i % 100 == 0:
 			print("After %d steps, perplexity is %.3f" % (i, np.exp(costs/iters)))
-			print("Meanwhile, costs is %.3f" % costs)
 	return np.exp(costs/iters)
 
 def get_result(session, model, data, eval_op, verbose, epoch_size):
-	result_csv_name = "tmp/experi_data" + FLAGS.train_option + '_' + 'crf' + str(FLAGS.crf_option) + 'iter'+ str(FLAGS.iteration) + str(FLAGS.shuffle) +'biLSTMResult.csv'
+	result_csv_name = "tmp/bt11_experi_data/" + FLAGS.train_option + '_' + 'cnn' + str(FLAGS.cnn_option) + 'iter'+ str(FLAGS.iteration) + str(FLAGS.shuffle) +'biLSTMResult.csv'
 	result_csv = open(result_csv_name, 'w+')
 	csvwriter= csv.writer(result_csv)
 	batch_size = 20
-	num_steps = 25
+	num_steps = 30
 	for i in range(epoch_size):
 		# 保证有序性
 		# x, y = get_feeddata(session, i, data, batch_size, num_steps)
@@ -490,7 +489,7 @@ def main(argv=None):
 	config = get_config()
 	eval_config = get_config()
 	eval_config.batch_size = 1
-	eval_config.num_steps = 25
+	eval_config.num_steps = 30
 
 	# 计算一个epoch需要训练的次数
 	train_data_len = len(train_data)

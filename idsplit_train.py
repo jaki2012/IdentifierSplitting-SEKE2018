@@ -3,6 +3,7 @@ import tensorflow as tf
 import csv
 import random
 import string
+import pandas as pd
 import numpy as np
 
 
@@ -15,19 +16,32 @@ def sequence_label(str):
 		return ['B', (len(str)-2) * 'M','E']
 
 # 设置newline，否则两行之间会空一行
-oracle_samples = open('tmp/oracle_samples.csv','w', newline='')
+oracle_samples = open('tmp/bt11_oracle_samples.csv','w', newline='')
 writer = csv.writer(oracle_samples)
 
-INPUT_DATA = "/Users/lijiechu/Desktop/loyola-udelaware-identifier-splitting-oracle.txt"
-file = open(INPUT_DATA)
-raw_data = file.readlines()
+INPUT_DATA = "tmp/bt11_data.csv"
+# file = open(INPUT_DATA)
+# raw_data = file.readlines()
+df = pd.read_csv(INPUT_DATA, header=None,keep_default_na=False)
+raw_data = df.values
 count = 0
 wait_to_shuffle =[]
-for line in raw_data:
+checkss= [] 
+for line in range(len(raw_data)):
 	count = count + 1
-	data = line.split(' ')
-	data1 = data[1]
-	data2 = data[6]
+	data = raw_data[line]
+	# print(data)
+	data1 = data[0]
+	checkss.append(data1)
+
+	data2 = data[1]
+	# 被这个例外搞死了
+	if data1.find("gdk_window_set_decorations")!=-1:
+		data2=data2[1:]
+		print(data2)
+	temp_save = data1
+	# bt11还需要注意大小写分割
+	data1 = data1.lower()
 	lenorigin = len(data1)
 	lensplit = len(data2)
 	split = []
@@ -51,7 +65,11 @@ for line in raw_data:
 			data2 = data2[0:j] + data1[i] + data2[j:]
 			# offset = offset + 1
 			continue
-	data1 = data1.strip(string.punctuation)
+	# print(data1, data2)
+	# if data1=="_locale":
+	# 	print("hahahs")
+	# 	print(string.punctuation)
+	data1 = temp_save.strip(string.punctuation)
 	data2 = data2.strip(string.punctuation)
 	# print(("count %d" % count)  + ": " + data1 + " ======= " + data2)
 	# 利用这个特性做序列标注
@@ -62,13 +80,18 @@ for line in raw_data:
 		split =split+ tmp
 
 	orgdata = []
-	orgdata.append(data1)
+	orgdata.append(temp_save)
 	orgdata.append(data2)
-	if len(data1) > 25:
+	if len(data1) > 30:
 		continue
 	else:
-		spare = 25 - len(data1)
-		for g in range (spare):
+		spare = 30 - len(data1)
+		datad = data1
+		# if data1=="_locale":
+		# 	print(spare)
+		for g in range(spare):
+			# if datad=="gdk_window_set_decorations":
+			# 	print("aaaa" + str(len(split)))
 			data1 = data1 + ' '
 			split.append('N')
 		# print(list(' '.join(list(data1))))
@@ -85,13 +108,16 @@ for line in raw_data:
 				label.append('0')
 			g = g + 1
 			o = o + 1
-		while o < 25:
+		while o < 30:
 			o = o +1
 			label.append('0')
-		print("data1: " + data1)
-		print("sequl: " + ''.join(split))
-		print("====")
+		# print("data1: " + temp_save)
+		# print("sequl: " + ''.join(split))
+		# print("====")
 		wait_to_shuffle.append(orgdata + list(''.join(list(data1))) + list(''.join(split)) )
 		# writer.writerow(orgdata + list(''.join(list(data1))) + list(''.join(split)) )
+print(count)
+print(len(checkss))
+print(len(set(checkss)))
 random.shuffle(wait_to_shuffle)
 writer.writerows(wait_to_shuffle)

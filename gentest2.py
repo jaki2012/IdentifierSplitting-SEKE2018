@@ -13,9 +13,11 @@ num_of_splitting = 1
 verbose = True
 
 df = pd.read_csv("tmp/cheat_splitting_file.csv", header=None)
-identifiers = list(itertools.chain.from_iterable(df.values[34595:, 0:1]))
+identifiers = list(itertools.chain.from_iterable(df.values[34355:, 0:1]))
 
-splitted_identifiers = list(itertools.chain.from_iterable(df.values[34595:, 1:2]))
+
+splitted_identifiers = list(itertools.chain.from_iterable(df.values[34355:, 1:2]))
+print(','.join(splitted_identifiers))
 lendata = len(identifiers)
 
 
