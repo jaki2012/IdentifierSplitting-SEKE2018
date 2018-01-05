@@ -51,8 +51,8 @@ def cal_accuracy(verbose=False):
 	for i in range(lenresults):
 		a.append(''.join(correct_answer[i]))
 	b= len(set(a))
-	print(len(a))
-	print(b)
+	# print(len(a))
+	# print(b)
 	# print(len(b))
 	for j in range(lenresults):
 		right = True
@@ -286,7 +286,7 @@ def analyze_accuracy(train_option=None, cnn_option=None, shuffle_option=None):
 	else:
 		shuffle_option = "False"
 	experi_accuracies = []
-	df = pd.read_csv("tmp/experi_result.csv", header=None)
+	df = pd.read_csv("tmp/bt11_experi_result.csv", header=None)
 	data = df.values
 	lendata = len(data)
 	count = 0
@@ -318,11 +318,11 @@ def scan_experi_data():
 			if os.path.join(path, file).find(".csv")==-1:
 				continue
 			vec2word(os.path.join(path, file))
-			print(os.path.join(path, file))
+			# print(os.path.join(path, file))
 			accuracy = cal_accuracy()
 			print(accuracy)
 			# 后向断言
-			pattern_train_option = re.compile(r'.*?(?=_crf)')
+			pattern_train_option = re.compile(r'.*?(?=_cnn)')
 			# 前向断言用search
 			pattern_cnn_option = re.compile(r'(?<=_cnn).*(?=iter)')
 			pattern_shuffle_option = re.compile(r'(?<=iter).*(?=bi)')
@@ -334,12 +334,14 @@ def scan_experi_data():
 			m4 = pattern_iter_option.search(file)
 
 			if m1:
+				print("suck")
 				i = i + 1
 				# print(i)
 				# look-behind requires fixed-width pattern in python 
 				# print(m1.group(), m2.group(), m3.group().strip(string.digits), m4.group())
 				# print(accuracy)
 				# 转化为int才能排序
+				print(i, m1.group(), m2.group(), m3.group().strip(string.digits), int(m4.group()), accuracy)
 				experi_results.append((i, m1.group(), m2.group(), m3.group().strip(string.digits), int(m4.group()), accuracy))
 				# csvwriter.writerow((i, m1.group(), m2.group(), m3.group().strip(string.digits), m4.group(), accuracy))
 
@@ -355,12 +357,12 @@ def scan_experi_data():
 
 
 if __name__ == '__main__':
-	word2vec(total_dict_list)
+	# word2vec(total_dict_list)
 	# vec2word()
 	# cal_accuracy()
 	# trick_on_dataset()
 	# scan_experi_data()
 	# sort_experi_accuracies()
 	# calculate_wordsegment_accuracy(False)
-	# print(analyze_accuracy(train_option="mixed", cnn_option=3, shuffle_option=True))
+	print(analyze_accuracy(train_option="pure_corpus", cnn_option=2, shuffle_option=True))
 
