@@ -3,7 +3,6 @@ import tensorflow as tf
 import numpy as np 
 import reader
 import pandas as pd
-# from sklearn.utils import shuffle  
 import random
 import time
 import csv
@@ -81,13 +80,12 @@ def get_rawdata(path):
 
 	if FLAGS.train_option == "pure_corpus":
 		# 配置一
-		train_data = data[:17000, :]
-		shuffle_data = data[17000:, :]
 		if FLAGS.shuffle:
-			random_ind = list(range(0, len(shuffle_data)))
+			random_ind = list(range(0, len(data)))
 			random.shuffle(random_ind)
-		valid_data = shuffle_data[random_ind[:2000], :]
-		test_data = shuffle_data[random_ind[2000:], :]
+		train_data = data[random_ind[:9875], :]
+		valid_data = data[random_ind[9875:9875+2116], :]
+		test_data = data[random_ind[9875+2116:], :]
 	elif FLAGS.train_option == "mixed":
 		# 配置二
 		train_data = data[:32355, :]
@@ -381,12 +379,12 @@ class SmallConfig(object):
 	num_steps = 30
 	hidden_size = 200
 	max_epoch = 4
-	max_max_epoch = 13
+	max_max_epoch = 12
 	keep_prob = 1.0
 	lr_decay = 0.5
 	batch_size = 20
 	# default 100
-	vocab_size = 65
+	vocab_size = 64
 	num_classes = 5
 
 def decode(logits, lengths, matrix):
@@ -437,7 +435,7 @@ def run_epoch(session, model, data, eval_op, verbose, epoch_size, Name="NOFOCUS"
 	return np.exp(costs/iters)
 
 def get_result(session, model, data, eval_op, verbose, epoch_size):
-	result_csv_name = "tmp/bt11_experi_data/" + FLAGS.train_option + '_' + 'cnn' + str(FLAGS.cnn_option) + 'iter'+ str(FLAGS.iteration) + str(FLAGS.shuffle) +'biLSTMResult.csv'
+	result_csv_name = "tmp/shs_bt11_experi_data/" + FLAGS.train_option + '_' + 'cnn' + str(FLAGS.cnn_option) + 'iter'+ str(FLAGS.iteration) + str(FLAGS.shuffle) +'biLSTMResult.csv'
 	result_csv = open(result_csv_name, 'w+')
 	csvwriter= csv.writer(result_csv)
 	batch_size = 20

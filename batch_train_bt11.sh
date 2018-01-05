@@ -1,15 +1,14 @@
-#!/bin/bash/
 # future work expand
 step=0
 actual_step=0
 train_options=("pure_corpus")
-cnn_options=(2 1 3)
+cnn_options=(2 1)
 shuffle_options=(True)
 # in rainlf's pc, it should be "py -3.5 biLSTM_RNN.py"
 python_exec_cmd="python biLSTM_RNN.py"
 
 
-for iter in {1..10}
+for iter in {1..3}
 do
 	for cnn_option in ${cnn_options[*]}
 	do
@@ -19,7 +18,7 @@ do
 			do
 				((step++))
 				echo "step $step--------------"
-				experi_data="tmp/bt11_experi_data/${train_option}_cnn${cnn_option}iter${iter}${shuffle_option}biLSTMResult.csv"
+				experi_data="tmp/shs_bt11_experi_data/${train_option}_cnn${cnn_option}iter${iter}${shuffle_option}biLSTMResult.csv"
 				# The experiment data of this options is still not existed
 				if [ ! -f "$experi_data" ]; then
 					echo "excuting $step..."

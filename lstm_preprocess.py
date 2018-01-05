@@ -17,11 +17,11 @@ CODED_FILE = "tmp/coded_file.csv"
 
 RESULT_FILE = "tmp/final_result.csv"
 EXPERI_DATA_PATH = "tmp/experi_data"
-BT11_EXPERI_DATA_PATH = "tmp/bt11_experi_data"
+BT11_EXPERI_DATA_PATH = "tmp/hs_bt11_experi_data"
 EXPERI_RESULT_FILE = "tmp/experi_result.csv"
 BT11_EXPERI_RESULT_FILE = "tmp/bt11_experi_result.csv"
 
-df = pd.read_csv("tmp/bt11_oracle_samples.csv", header=None)
+df = pd.read_csv("tmp/hardsplit_bt11_oracle_samples.csv", header=None)
 total_dict = df.values[:, 2:32]
 total_dict_list = list(itertools.chain.from_iterable(total_dict))
 sr_allwords = pd.Series(total_dict_list)
@@ -35,6 +35,49 @@ word2id = pd.Series(set_ids, index=set_words)
 id2word = pd.Series(set_words, index=set_ids)
 tag2id = pd.Series(tag_ids, index=tags)
 id2tag = pd.Series(tags, index=tag_ids)
+
+def find_split_positions(seqs_list):
+	positions = []
+	for i in range(len(seqs_list) - 1):
+		if seqs_list[i] == 'S' and seqs_list[i+1] == 'S':
+			positions.append(i+1)
+		elif seqs_list[i] == 'S' and seqs_list[i+1] == 'B':
+			positions.append(i+1)
+		elif seqs_list[i] == 'E' and seqs_list[i+1] == 'B':
+			positions.append(i+1)
+		elif seqs_list[i] == 'E' and seqs_list[i+1] == 'S':
+			positions.append(i+1)
+	if len(positions) != len(set(positions)):
+		print("damn it !")
+	return set(positions)
+
+def cal_precison(verbose=False):
+	df = pd.read_csv("tmp/final_result.csv", header=None)
+	correct_answer = df.values[:, :30]
+	total_result = df.values[:, 30:]
+	lenresults = total_result.shape[0]
+	labels = total_result[:, :30]
+	logits = total_result[:, 30:]
+
+	num_of_total_splits = 0
+	num_of_precise_splits = 0
+
+
+	same_splits = 0
+	for j in range(lenresults):
+		correct_splits = find_split_positions(labels[j])
+		predict_splits = find_split_positions(logits[j])
+		precise_splits = correct_splits & predict_splits
+		num_of_total_splits = num_of_total_splits + len(predict_splits)
+		num_of_precise_splits = num_of_precise_splits + len(precise_splits)
+		if len(correct_splits - predict_splits) == 0:
+			same_splits = same_splits + 1
+
+	print(lenresults)
+	print(same_splits)
+	print(num_of_total_splits)
+	print(num_of_precise_splits)
+	return round((num_of_precise_splits/num_of_total_splits),3)
 
 def cal_accuracy(verbose=False):
 	df = pd.read_csv("tmp/final_result.csv", header=None)
@@ -52,7 +95,7 @@ def cal_accuracy(verbose=False):
 		a.append(''.join(correct_answer[i]))
 	b= len(set(a))
 	# print(len(a))
-	# print(b)
+	print(b)
 	# print(len(b))
 	for j in range(lenresults):
 		right = True
@@ -126,7 +169,7 @@ def vec2word(file):
 def word2vec(total_dict_list, dict_way=False):
 	coded_file = open(CODED_FILE, 'w', newline='')
 	csvwriter = csv.writer(coded_file)
-	df = pd.read_csv("tmp/bt11_oracle_samples.csv", header=None)
+	df = pd.read_csv("tmp/hardsplit_bt11_oracle_samples.csv", header=None)
 	total_dict = df.values[:, 2:]
 	lendict = total_dict.shape[0]
 	if dict_way:
@@ -364,5 +407,8 @@ if __name__ == '__main__':
 	# scan_experi_data()
 	# sort_experi_accuracies()
 	# calculate_wordsegment_accuracy(False)
-	print(analyze_accuracy(train_option="pure_corpus", cnn_option=2, shuffle_option=True))
+	# print(analyze_accuracy(train_option="pure_corpus", cnn_option=2, shuffle_option=True))
+	# find_split_positions(['S','B','M','M','E','B','M','M','E','S'])
+	print(cal_precison())
+	# print(cal_accuracy())
 
