@@ -17,11 +17,11 @@ CODED_FILE = "tmp/coded_file.csv"
 
 RESULT_FILE = "tmp/final_result.csv"
 EXPERI_DATA_PATH = "tmp/experi_data"
-BT11_EXPERI_DATA_PATH = "tmp/hs_bt11_experi_data"
+BT11_EXPERI_DATA_PATH = "tmp/nhs_bt11_experi_data"
 EXPERI_RESULT_FILE = "tmp/experi_result.csv"
 BT11_EXPERI_RESULT_FILE = "tmp/bt11_experi_result.csv"
 
-df = pd.read_csv("tmp/hardsplit_bt11_oracle_samples.csv", header=None)
+df = pd.read_csv("tmp/non_hardsplit_bt11_oracle_samples.csv", header=None)
 total_dict = df.values[:, 2:32]
 total_dict_list = list(itertools.chain.from_iterable(total_dict))
 sr_allwords = pd.Series(total_dict_list)
@@ -59,25 +59,20 @@ def cal_precison(verbose=False):
 	labels = total_result[:, :30]
 	logits = total_result[:, 30:]
 
-	num_of_total_splits = 0
-	num_of_precise_splits = 0
-
-
-	same_splits = 0
+	precision = 0
+	recall = 0
 	for j in range(lenresults):
 		correct_splits = find_split_positions(labels[j])
 		predict_splits = find_split_positions(logits[j])
 		precise_splits = correct_splits & predict_splits
-		num_of_total_splits = num_of_total_splits + len(predict_splits)
-		num_of_precise_splits = num_of_precise_splits + len(precise_splits)
-		if len(correct_splits - predict_splits) == 0:
-			same_splits = same_splits + 1
+		precision = precision + (1 + len(precise_splits))/ (1+len(predict_splits))
+		recall = recall + (1 + len(precise_splits))/ (1+len(correct_splits))
 
-	print(lenresults)
-	print(same_splits)
-	print(num_of_total_splits)
-	print(num_of_precise_splits)
-	return round((num_of_precise_splits/num_of_total_splits),3)
+
+	precision = round((precision/lenresults),3)
+	recall = round((recall/lenresults),3)
+	fmesure = round( 2 * precision * recall / (precision + recall), 3)
+	return fmesure
 
 def cal_accuracy(verbose=False):
 	df = pd.read_csv("tmp/final_result.csv", header=None)
