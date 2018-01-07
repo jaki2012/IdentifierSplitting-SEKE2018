@@ -130,12 +130,12 @@ for h in range(num_of_identifier):
 		orgdata.append(softsplits[k])
 		full_softword_set.append(softwords[k])
 		full_softsplit_set.append(softsplits[k])
-		unique_softiterm = softwords[k] + softsplits[k] + ''.join(softwords_chars[k]) + ''.join(softwords_seqs[k])
-		if unique_softiterm in total:
-			continue
-		else:
-			total.add(softwords[k] + softsplits[k] + ''.join(softwords_chars[k]) + ''.join(softwords_seqs[k]))
-			csvwriter.writerow(orgdata + padding_chars(softwords_chars[k]) + padding_seqs(softwords_seqs[k]))
+		# unique_softiterm = softwords[k] + softsplits[k] + ''.join(softwords_chars[k]) + ''.join(softwords_seqs[k])
+		# if unique_softiterm in total:
+		# 	continue
+		# else:
+		# 	total.add(softwords[k] + softsplits[k] + ''.join(softwords_chars[k]) + ''.join(softwords_seqs[k]))
+		csvwriter.writerow(orgdata + padding_chars(softwords_chars[k]) + padding_seqs(softwords_seqs[k]))
 	
 	# 过滤后的softsplit
 	nhs_orgdata = []

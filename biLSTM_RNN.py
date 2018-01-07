@@ -6,7 +6,11 @@ import pandas as pd
 import random
 import time
 import csv
-import configparser
+import sys
+if sys.version_info < (3, 0):
+	import ConfigParser as configparser
+else:
+	import configparser
 from tensorflow.contrib.crf import crf_log_likelihood
 from tensorflow.contrib.crf import viterbi_decode
 from tensorflow.contrib.layers.python.layers import initializers
@@ -90,9 +94,9 @@ def get_rawdata(path):
 		if FLAGS.shuffle:
 			random_ind = list(range(0, len(data)))
 			random.shuffle(random_ind)
-		train_data = data[random_ind[:2876], :]
-		valid_data = data[random_ind[2876:2876+616], :]
-		test_data = data[random_ind[2876+616:], :]
+		train_data = data[random_ind[:4887], :]
+		valid_data = data[random_ind[4887:4887+1047], :]
+		test_data = data[random_ind[4887+1047:], :]
 	elif FLAGS.train_option == "mixed":
 		# 配置二
 		train_data = data[:32355, :]
@@ -386,7 +390,7 @@ class SmallConfig(object):
 	num_steps = 30
 	hidden_size = 200
 	max_epoch = 4
-	max_max_epoch = 12
+	max_max_epoch = 13
 	keep_prob = 1.0
 	lr_decay = 0.5
 	batch_size = 20
@@ -528,7 +532,7 @@ def main(argv=None):
 			mValid = PTBModel(is_trainning=False, config=eval_config)
 			mTest = PTBModel(is_trainning=False, config=eval_config)
 
-		tf.initialize_all_variables().run()
+		tf.global_variables_initializer().run()
 
 		train_queue = reader.ptb_producer(train_data, config.batch_size, config.num_steps)
 		eval_queue = reader.ptb_producer(valid_data, eval_config.batch_size, eval_config.num_steps)
