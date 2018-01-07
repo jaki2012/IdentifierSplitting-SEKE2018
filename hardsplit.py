@@ -1,20 +1,24 @@
 import pandas as pd
+import configparser
 import numpy as np
 import csv
 
-BT11_ORACLE = "tmp/bt11_oracle_samples.csv"
-HARDSPLIT_BT11_ORACLE = "tmp/hardsplit_bt11_oracle_samples.csv"
-NON_HARDSPLIT_BT11_ORACLE = "tmp/non_hardsplit_bt11_oracle_samples.csv"
+cf = configparser.ConfigParser()
+cf.read('config.ini')
+oracle_samples_file = cf.get("original_oracles", "binkley_oracle_samples")
+hs_oracle_samples_file = cf.get("binkley_hs_data", "oracle_samples_file")
+nhs_oracle_samples_file = cf.get("binkley_nhs_data", "oracle_samples_file")
+
 VERBOSE = True
 
-df = pd.read_csv(BT11_ORACLE, header=None, keep_default_na=False)
+df = pd.read_csv(oracle_samples_file, header=None, keep_default_na=False)
 samples = df.values
 
-hardsplit_bt11_result_csv = open(HARDSPLIT_BT11_ORACLE, 'w', newline='')
+hardsplit_bt11_result_csv = open(hs_oracle_samples_file, 'w', newline='')
 csvwriter = csv.writer(hardsplit_bt11_result_csv)
 
-# non_hardsplit_bt11_result_csv = open(NON_HARDSPLIT_BT11_ORACLE, 'w', newline='')
-# csvwriter = csv.writer(non_hardsplit_bt11_result_csv)
+non_hardsplit_bt11_result_csv = open(nhs_oracle_samples_file, 'w', newline='')
+csvwriter2 = csv.writer(non_hardsplit_bt11_result_csv)
 
 # 查看最大长度
 max_length = 30	
@@ -112,6 +116,7 @@ for h in range(num_of_identifier):
 	softsplits.append(generate_softsplit(identifier[prev_pos:len(identifier)], list(samples[h][prev_pos + 2 + 30 :len(identifier)+2 +30])))
 
 	# 统计、输出、并去除错误的结果
+	print(identifier, softwords)
 	if len(softwords) >1 and VERBOSE and not check_uncorrect_hardsplit(softwords_seqs):
 		# print(identifier, softwords, softwords_chars, softwords_seqs)
 		count = count +1
@@ -133,10 +138,10 @@ for h in range(num_of_identifier):
 			csvwriter.writerow(orgdata + padding_chars(softwords_chars[k]) + padding_seqs(softwords_seqs[k]))
 	
 	# 过滤后的softsplit
-	# nhs_orgdata = []
-	# nhs_orgdata.append(identifier)
-	# nhs_orgdata.append(splitted_identifier)
-	# csvwriter.writerow(nhs_orgdata + list(samples[h][2:32]) + list(samples[h][32:62]))
+	nhs_orgdata = []
+	nhs_orgdata.append(identifier)
+	nhs_orgdata.append(splitted_identifier)
+	csvwriter2.writerow(nhs_orgdata + list(samples[h][2:32]) + list(samples[h][32:62]))
 
 # 存在重复项
 print(len(set(full_softword_set)))

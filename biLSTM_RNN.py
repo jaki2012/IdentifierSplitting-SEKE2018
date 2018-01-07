@@ -6,9 +6,16 @@ import pandas as pd
 import random
 import time
 import csv
+import configparser
 from tensorflow.contrib.crf import crf_log_likelihood
 from tensorflow.contrib.crf import viterbi_decode
 from tensorflow.contrib.layers.python.layers import initializers
+
+cf = configparser.ConfigParser()
+cf.read('config.ini')
+EXPERI_DATA_FILE = cf.get("binkley_hs_data", "experi_data_path")
+CODED_FILE = cf.get("binkley_hs_data", "coded_file")
+
 flags = tf.flags
 logging = tf.logging
 
@@ -21,7 +28,7 @@ flags.DEFINE_integer(
 	"whether to use crf layer. default yes")
 
 flags.DEFINE_string(
-	"data_path", "tmp/coded_file.csv",
+	"data_path", CODED_FILE,
 	"The directory to retrive the data")
 
 flags.DEFINE_bool(
@@ -83,9 +90,9 @@ def get_rawdata(path):
 		if FLAGS.shuffle:
 			random_ind = list(range(0, len(data)))
 			random.shuffle(random_ind)
-		train_data = data[random_ind[:9875], :]
-		valid_data = data[random_ind[9875:9875+2116], :]
-		test_data = data[random_ind[9875+2116:], :]
+		train_data = data[random_ind[:2876], :]
+		valid_data = data[random_ind[2876:2876+616], :]
+		test_data = data[random_ind[2876+616:], :]
 	elif FLAGS.train_option == "mixed":
 		# 配置二
 		train_data = data[:32355, :]
@@ -435,7 +442,7 @@ def run_epoch(session, model, data, eval_op, verbose, epoch_size, Name="NOFOCUS"
 	return np.exp(costs/iters)
 
 def get_result(session, model, data, eval_op, verbose, epoch_size):
-	result_csv_name = "tmp/shs_bt11_experi_data/" + FLAGS.train_option + '_' + 'cnn' + str(FLAGS.cnn_option) + 'iter'+ str(FLAGS.iteration) + str(FLAGS.shuffle) +'biLSTMResult.csv'
+	result_csv_name = EXPERI_DATA_FILE + FLAGS.train_option + '_' + 'cnn' + str(FLAGS.cnn_option) + 'iter'+ str(FLAGS.iteration) + str(FLAGS.shuffle) +'biLSTMResult.csv'
 	result_csv = open(result_csv_name, 'w+')
 	csvwriter= csv.writer(result_csv)
 	batch_size = 20

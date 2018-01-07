@@ -5,6 +5,12 @@ import random
 import string
 import pandas as pd
 import numpy as np
+import configparser
+
+cf = configparser.ConfigParser()
+cf.read('config.ini')
+oracle_samples_file = cf.get("original_oracles", "binkley_oracle_samples")
+intput_data_file = cf.get("original_oracles", "binkley_dataset_file")
 
 
 def sequence_label(str):
@@ -16,10 +22,10 @@ def sequence_label(str):
 		return ['B', (len(str)-2) * 'M','E']
 
 # 设置newline，否则两行之间会空一行
-oracle_samples = open('tmp/bt11_oracle_samples.csv','w', newline='')
+oracle_samples = open(oracle_samples_file,'w', newline='')
 writer = csv.writer(oracle_samples)
 
-INPUT_DATA = "tmp/bt11_data.csv"
+INPUT_DATA = intput_data_file
 # file = open(INPUT_DATA)
 # raw_data = file.readlines()
 df = pd.read_csv(INPUT_DATA, header=None,keep_default_na=False)
@@ -42,7 +48,7 @@ for line in range(len(raw_data)):
 		print(data2)
 	temp_save = data1
 	# bt11还需要注意大小写分割
-	data1 = data1.lower()
+	# data1 = data1.lower()
 	lenorigin = len(data1)
 	lensplit = len(data2)
 	split = []

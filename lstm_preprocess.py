@@ -9,19 +9,25 @@ import time
 import string
 import random
 import re
+import configparser
 from sklearn.preprocessing import LabelEncoder
 
 CHEAT_FILE = "tmp/cheat_file.csv"
 CHEAT_SPLITTING_FILE = "tmp/cheat_splitting_file1.csv"
-CODED_FILE = "tmp/coded_file.csv"
+
 
 RESULT_FILE = "tmp/final_result.csv"
 EXPERI_DATA_PATH = "tmp/experi_data"
-BT11_EXPERI_DATA_PATH = "tmp/nhs_bt11_experi_data"
+BT11_EXPERI_DATA_PATH = "tmp/shs_bt11_experi_data"
 EXPERI_RESULT_FILE = "tmp/experi_result.csv"
 BT11_EXPERI_RESULT_FILE = "tmp/bt11_experi_result.csv"
 
-df = pd.read_csv("tmp/non_hardsplit_bt11_oracle_samples.csv", header=None)
+cf = configparser.ConfigParser()
+cf.read('config.ini')
+CODED_FILE = cf.get("binkley_hs_data", "coded_file")
+SAMEPLES_FILE = cf.get("binkley_hs_data", "oracle_samples_file")
+
+df = pd.read_csv(SAMEPLES_FILE, header=None)
 total_dict = df.values[:, 2:32]
 total_dict_list = list(itertools.chain.from_iterable(total_dict))
 sr_allwords = pd.Series(total_dict_list)
@@ -164,7 +170,7 @@ def vec2word(file):
 def word2vec(total_dict_list, dict_way=False):
 	coded_file = open(CODED_FILE, 'w', newline='')
 	csvwriter = csv.writer(coded_file)
-	df = pd.read_csv("tmp/hardsplit_bt11_oracle_samples.csv", header=None)
+	df = pd.read_csv(SAMEPLES_FILE, header=None)
 	total_dict = df.values[:, 2:]
 	lendict = total_dict.shape[0]
 	if dict_way:
@@ -395,15 +401,15 @@ def scan_experi_data():
 
 
 if __name__ == '__main__':
-	# word2vec(total_dict_list)
+	word2vec(total_dict_list)
 	# vec2word()
 	# cal_accuracy()
 	# trick_on_dataset()
 	# scan_experi_data()
 	# sort_experi_accuracies()
 	# calculate_wordsegment_accuracy(False)
-	# print(analyze_accuracy(train_option="pure_corpus", cnn_option=2, shuffle_option=True))
+	# print(analyze_accuracy(train_option="pure_corpus", cnn_option=1, shuffle_option=True))
 	# find_split_positions(['S','B','M','M','E','B','M','M','E','S'])
-	print(cal_precison())
+	# print(cal_precison())
 	# print(cal_accuracy())
 
