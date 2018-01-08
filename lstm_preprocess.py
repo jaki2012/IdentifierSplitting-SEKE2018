@@ -24,8 +24,10 @@ BT11_EXPERI_RESULT_FILE = "tmp/bt11_experi_result.csv"
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
-CODED_FILE = cf.get("binkley_hs_data", "coded_file")
-SAMEPLES_FILE = cf.get("binkley_hs_data", "oracle_samples_file")
+processing_project = "bt11_hs_data"
+CODED_FILE = cf.get(processing_project, "coded_file")
+SAMEPLES_FILE = cf.get(processing_project, "oracle_samples_file")
+EXPERI_DATA_PATH = cf.get(processing_project, "experi_data_path")
 
 df = pd.read_csv(SAMEPLES_FILE, header=None)
 total_dict = df.values[:, 2:32]
@@ -96,7 +98,7 @@ def cal_accuracy(verbose=False):
 		a.append(''.join(correct_answer[i]))
 	b= len(set(a))
 	# print(len(a))
-	print(b)
+	# print(b)
 	# print(len(b))
 	for j in range(lenresults):
 		right = True
@@ -357,7 +359,8 @@ def scan_experi_data():
 	experi_results_csv = open(BT11_EXPERI_RESULT_FILE, 'w+', newline='')
 	csvwriter = csv.writer(experi_results_csv)
 	i = 0
-	for path, subpaths, files in os.walk(BT11_EXPERI_DATA_PATH):
+	# print(EXPERI_DATA_PATH)
+	for path, subpaths, files in os.walk(EXPERI_DATA_PATH):
 		for file in files:
 			if os.path.join(path, file).find(".csv")==-1:
 				continue
@@ -378,7 +381,6 @@ def scan_experi_data():
 			m4 = pattern_iter_option.search(file)
 
 			if m1:
-				print("suck")
 				i = i + 1
 				# print(i)
 				# look-behind requires fixed-width pattern in python 
@@ -408,7 +410,7 @@ if __name__ == '__main__':
 	# scan_experi_data()
 	# sort_experi_accuracies()
 	# calculate_wordsegment_accuracy(False)
-	# print(analyze_accuracy(train_option="pure_corpus", cnn_option=1, shuffle_option=True))
+	# print(analyze_accuracy(train_option="pure_corpus", cnn_option=2, shuffle_option=True))
 	# find_split_positions(['S','B','M','M','E','B','M','M','E','S'])
 	# print(cal_precison())
 	# print(cal_accuracy())

@@ -5,9 +5,9 @@ import csv
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
-oracle_samples_file = cf.get("original_oracles", "binkley_oracle_samples")
-hs_oracle_samples_file = cf.get("binkley_hs_data", "oracle_samples_file")
-nhs_oracle_samples_file = cf.get("binkley_nhs_data", "oracle_samples_file")
+oracle_samples_file = cf.get("original_oracles", "bt11_oracle_samples")
+hs_oracle_samples_file = cf.get("bt11_hs_data", "oracle_samples_file")
+nhs_oracle_samples_file = cf.get("bt11_nhs_data", "oracle_samples_file")
 
 VERBOSE = True
 

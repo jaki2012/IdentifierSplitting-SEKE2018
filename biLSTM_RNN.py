@@ -17,8 +17,8 @@ from tensorflow.contrib.layers.python.layers import initializers
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
-EXPERI_DATA_FILE = cf.get("binkley_hs_data", "experi_data_path")
-CODED_FILE = cf.get("binkley_hs_data", "coded_file")
+EXPERI_DATA_FILE = cf.get("bt11_hs_data", "experi_data_path")
+CODED_FILE = cf.get("bt11_hs_data", "coded_file")
 
 flags = tf.flags
 logging = tf.logging
@@ -88,15 +88,18 @@ def get_sequence_lengths(x_inputs):
 def get_rawdata(path):
 	df = pd.read_csv(path, header=None)
 	data = df.values
-
+	data_len = len(data)
+	train_len = int(data_len * 0.7)
+	valid_len = int(data_len * 0.15)
+	test_len = data_len - train_len - valid_len
 	if FLAGS.train_option == "pure_corpus":
 		# 配置一
 		if FLAGS.shuffle:
 			random_ind = list(range(0, len(data)))
 			random.shuffle(random_ind)
-		train_data = data[random_ind[:4887], :]
-		valid_data = data[random_ind[4887:4887+1047], :]
-		test_data = data[random_ind[4887+1047:], :]
+		train_data = data[random_ind[:train_len], :]
+		valid_data = data[random_ind[train_len:train_len+valid_len], :]
+		test_data = data[random_ind[train_len+valid_len:], :]
 	elif FLAGS.train_option == "mixed":
 		# 配置二
 		train_data = data[:32355, :]
@@ -493,8 +496,6 @@ def main(argv=None):
 	train_data, valid_data, test_data = get_rawdata(FLAGS.data_path)
 
 
-
-
 	print("reading file finish")
 	config = get_config()
 	eval_config = get_config()
@@ -514,13 +515,11 @@ def main(argv=None):
 	
 
 	test_data_len = len(test_data)
-	print(test_data_len)
 	a =[]
 	for i in range(test_data_len):
 		a.append("+".join(str(test_data[i][:30])))
-	print("==")
-	print(len(a))
-	print(len(set(a)))
+	print("all test data len is %d" % len(a))
+	print("all unique data len is %d" % len(set(a)))
 	test_batch_len = test_data_len // eval_config.batch_size
 	# test_epoch_size = (test_batch_len - 1) // EVAL_NUM_STEP
 
