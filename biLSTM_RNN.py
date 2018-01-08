@@ -17,8 +17,8 @@ from tensorflow.contrib.layers.python.layers import initializers
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
-EXPERI_DATA_FILE = cf.get("bt11_hs_data", "experi_data_path")
-CODED_FILE = cf.get("bt11_hs_data", "coded_file")
+EXPERI_DATA_FILE = cf.get("binkley_hs_data", "experi_data_path")
+CODED_FILE = cf.get("binkley_hs_data", "coded_file")
 
 flags = tf.flags
 logging = tf.logging

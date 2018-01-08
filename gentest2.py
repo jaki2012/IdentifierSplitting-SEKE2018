@@ -1,25 +1,85 @@
 from urllib import request
 import random
+import getopt
 import datetime
+import csv
 import pandas as pd
 import itertools
 import numpy as np
 import sys
+import os
+import threading
 from multiprocessing.dummy import Pool as ThreadPool
+
+
+def calculate(measure):
+	measures = ["accuracy", "precision", "recall", "fmeasure"]
+	try:
+		measure_id = measures.index(measure.lower())
+	except ValueError:
+		print("wrong parameters for -c option")
+		sys.exit()
+	dataframe = pd.read_csv("tmp/already_calculated.csv")
+	values = dataframe.values[:, 1+measure_id : 1+measure_id+1]
+	values = list(itertools.chain.from_iterable(values))
+	len_calculated = len(values)
+	total = 0
+	for i in range(len_calculated):
+		total = total + values[i]
+	print(round(total/len_calculated, 3))
+
+try:  
+	opts, args = getopt.getopt(sys.argv[1:], "hrc:o:", ["help", "output="])  
+except getopt.GetoptError:
+	# print help information and exit:
+	print()
+
+for o, a in opts:
+	# -c calculate 计算模式 分析目前的measure
+	if o in ["-c"]:
+		calculate(a)
+		sys.exit()
+	if o in ["-r"]:
+		print("reseting data...")
+		# reset_calculated_file()
+		sys.exit()
+
+
+
+
+def write_to_calculated(result):	
+	if mutex.acquire(1):
+		temp = open("tmp/already_calculated.csv", 'a+', newline='')
+		csvwriter = csv.writer(temp)
+		csvwriter.writerow(result)
+		mutex.release()
+		temp.close()
+
+mutex = threading.Lock()
+
+def reset_calculated_file():
+	temp = open("tmp/already_calculated.csv", 'w', newline='')
+	temp.write("index,accuracy,precision,recall,fmeasure")
+	temp.write("\n")
+	temp.close()
+
+
+# reset_calculated_file()
+# sys.exit()
 
 # 捕获全局的异常
 def excepthook(type, value, trace):
 	'''write the unhandle exception to log'''
 	print('Unhandled Error: %s: %s'%(str(type), str(value)))
+	if str(type).find("ExceptionWithTraceback") != -1:
+		os.system('python gentest2.py')
 	sys.__excepthook__(type, value, trace)
 sys.excepthook = excepthook
 # https://bugs.python.org/review/20980/diff/11367/Lib/multiprocessing/pool.py
 # 更改了源码 https://bugs.python.org/review/20980/#ps11367
 # issue地址:https://bugs.python.org/issue20980
 # 有空试下包装成实例类CLASS方法
-# 多线程不能直接写
-# 把检验accuracy precison recall的工作也使用多线程来处理 返回count 1 0 10 pool.map相加
-
+# 经常会有网络断开问题 解决之
 starttime = datetime.datetime.now()
 
 base_url = "http://splitit.cs.loyola.edu/cgi/splitit.cgi"
@@ -27,15 +87,30 @@ max_int = 9999
 num_of_splitting = 1
 verbose = False
 
+df1 = pd.read_csv("tmp/already_calculated.csv")
+calculated_indexes = list(itertools.chain.from_iterable(df1.values[:, 0:1]))
+print(len(calculated_indexes))
+
+
 df = pd.read_csv("tmp/hardsplit_binkley_oracle_samples.csv", header=None, keep_default_na=False)
 identifiers = list(itertools.chain.from_iterable(df.values[:, 0:1]))
+lendata = len(identifiers)
 # identifiers = list(itertools.chain.from_iterable(df.values[0:20, 0:2]))
 # print(identifiers)
 splitted_identifiers = list(itertools.chain.from_iterable(df.values[:, 1:2]))
-print(','.join(splitted_identifiers))
+indexes = range(0, lendata)
+# print(','.join(splitted_identifiers))
 
-lendata = len(identifiers)
-datas = df.values[:, 0:2]
+datas = df.values[:lendata, 0:2]
+datas = np.column_stack((indexes, datas))
+
+# 预处理数据 减轻多线程压力
+preprocessed_datas = []
+for i in range(len(datas)):
+	if i not in calculated_indexes:
+		preprocessed_datas.append(datas[i])
+
+print("preprocess finished...")
 
 pool = ThreadPool(10)
 
@@ -44,9 +119,12 @@ def split_and_check(data):
 	precision = 0
 	recall = 0
 	fmeasure = 0
+	# if data[0] in calculated_indexes:
+	# 	return count, precision, recall, fmeasure
+	
 	rand = random.randint(0, max_int)
 	# handle exception of url请求
-	identifier = data[0].replace('.', '_')
+	identifier = data[1].replace('.', '_')
 	url = base_url + "?&id=" + identifier + "&lang=java&n=" + str(num_of_splitting) + "&rand=" + str(rand)
 	# print("proceesing ", identifier)
 	body = request.urlopen(url).read()
@@ -60,7 +138,7 @@ def split_and_check(data):
 		softword = softwords[i].strip('\t1234567890')
 		gentest_split_result = gentest_split_result + softword.split('_')
 
-	splitted_identifier = data[1]
+	splitted_identifier = data[2]
 	parts = splitted_identifier.split('-')
 	condition = lambda part : part not in ['.', ':', '_', '~']
 	parts = [x for x in filter(condition, parts)]
@@ -99,6 +177,7 @@ def split_and_check(data):
 	if verbose and wrong_split:
 		print(parts)
 		print(gentest_split_result)
+	write_to_calculated([int(data[0]),count, precision, recall, fmeasure])
 	return count, precision, recall, fmeasure
 
 counts, precisons, recalls, fmeasures =  zip(*pool.map(split_and_check, datas))

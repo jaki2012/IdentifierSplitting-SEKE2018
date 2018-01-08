@@ -18,7 +18,7 @@ do
 			do
 				((step++))
 				echo "step $step--------------"
-				experi_data="experi_data/hs_bt11/${train_option}_cnn${cnn_option}iter${iter}${shuffle_option}biLSTMResult.csv"
+				experi_data="experi_data/hs_binkley/${train_option}_cnn${cnn_option}iter${iter}${shuffle_option}biLSTMResult.csv"
 				# The experiment data of this options is still not existed
 				if [ ! -f "$experi_data" ]; then
 					echo "excuting $step..."

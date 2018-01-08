@@ -396,8 +396,8 @@ def scan_experi_data():
 			vec2word(os.path.join(path, file))
 			# print(os.path.join(path, file))
 			accuracy = cal_accuracy()
-			# print(accuracy)
-			cal_precison()
+			print(accuracy)
+			# cal_precison()
 			# 后向断言
 			pattern_train_option = re.compile(r'.*?(?=_cnn)')
 			# 前向断言用search
@@ -433,11 +433,11 @@ def scan_experi_data():
 
 
 if __name__ == '__main__':
-	# word2vec(total_dict_list)
+	word2vec(total_dict_list)
 	# vec2word()
 	# cal_accuracy()
 	# trick_on_dataset()
-	scan_experi_data()
+	# scan_experi_data()
 	# sort_experi_accuracies()
 	# calculate_wordsegment_accuracy(False)
 	# print(analyze_accuracy(train_option="pure_corpus", cnn_option=2, shuffle_option=True))
