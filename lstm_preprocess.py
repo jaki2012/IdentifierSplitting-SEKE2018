@@ -24,7 +24,7 @@ BT11_EXPERI_RESULT_FILE = "tmp/bt11_experi_result.csv"
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
-processing_project = "bt11_hs_data"
+processing_project = "binkley_hs_data"
 CODED_FILE = cf.get(processing_project, "coded_file")
 SAMEPLES_FILE = cf.get(processing_project, "oracle_samples_file")
 EXPERI_DATA_PATH = cf.get(processing_project, "experi_data_path")
@@ -69,18 +69,47 @@ def cal_precison(verbose=False):
 
 	precision = 0
 	recall = 0
+	fmeasure = 0
+
+	total_precision = 0
+	total_recall = 0
+	total_fmeasure = 0
 	for j in range(lenresults):
 		correct_splits = find_split_positions(labels[j])
 		predict_splits = find_split_positions(logits[j])
 		precise_splits = correct_splits & predict_splits
-		precision = precision + (1 + len(precise_splits))/ (1+len(predict_splits))
-		recall = recall + (1 + len(precise_splits))/ (1+len(correct_splits))
+		
+		if len(predict_splits) == 0 and len(correct_splits) == 0:
+			precision = 1
+		elif len(predict_splits) == 0 and len(correct_splits) !=0:
+			precision = 0
+		else:
+			precision = len(precise_splits) / len(predict_splits)
+
+		if len(correct_splits) == 0 and len(predict_splits) == 0:
+			recall = 1
+		elif len(correct_splits) == 0 and len(predict_splits) != 0:
+			recall = 0
+		else:
+			recall = len(precise_splits) / len(correct_splits)
+		# calculate fmeasure
+		if (precision + recall) == 0:
+			fmeasure = 0
+		else:
+			fmeasure = 2 * precision * recall / (precision + recall)
+
+		total_precision  = total_precision + precision
+		total_recall = total_recall + recall
+		total_fmeasure = total_fmeasure + fmeasure
 
 
-	precision = round((precision/lenresults),3)
-	recall = round((recall/lenresults),3)
-	fmesure = round( 2 * precision * recall / (precision + recall), 3)
-	return fmesure
+	avg_precision = round((total_precision/lenresults),3)
+	avg_recall = round((total_recall/lenresults),3)
+	avg_fmeasure = round((total_fmeasure/lenresults), 3)
+	print("precision of gentest is: %.2f" % avg_precision)
+	print("recall of gentest is: %.2f" % avg_recall)
+	print("fmeasure of gentest is: %.2f" % avg_fmeasure )
+	return avg_fmeasure
 
 def cal_accuracy(verbose=False):
 	df = pd.read_csv("tmp/final_result.csv", header=None)
@@ -367,7 +396,8 @@ def scan_experi_data():
 			vec2word(os.path.join(path, file))
 			# print(os.path.join(path, file))
 			accuracy = cal_accuracy()
-			print(accuracy)
+			# print(accuracy)
+			cal_precison()
 			# 后向断言
 			pattern_train_option = re.compile(r'.*?(?=_cnn)')
 			# 前向断言用search
@@ -403,11 +433,11 @@ def scan_experi_data():
 
 
 if __name__ == '__main__':
-	word2vec(total_dict_list)
+	# word2vec(total_dict_list)
 	# vec2word()
 	# cal_accuracy()
 	# trick_on_dataset()
-	# scan_experi_data()
+	scan_experi_data()
 	# sort_experi_accuracies()
 	# calculate_wordsegment_accuracy(False)
 	# print(analyze_accuracy(train_option="pure_corpus", cnn_option=2, shuffle_option=True))
