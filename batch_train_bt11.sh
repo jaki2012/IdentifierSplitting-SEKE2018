@@ -2,7 +2,7 @@
 step=0
 actual_step=0
 train_options=("pure_corpus")
-cnn_options=(2)
+cnn_options=(1)
 shuffle_options=(False)
 # in rainlf's pc, it should be "py -3.5 biLSTM_RNN.py"
 python_exec_cmd="python biLSTM_RNN.py"
