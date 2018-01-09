@@ -90,7 +90,7 @@ calculated_indexes = list(itertools.chain.from_iterable(df1.values[:, 0:1]))
 print(len(calculated_indexes))
 
 
-df = pd.read_csv("tmp/non_hardsplit_bt11_oracle_samples.csv", header=None, keep_default_na=False)
+df = pd.read_csv("tmp/non_hardsplit_binkley_oracle_samples.csv", header=None, keep_default_na=False)
 identifiers = list(itertools.chain.from_iterable(df.values[:, 0:1]))
 lendata = len(identifiers)
 # identifiers = list(itertools.chain.from_iterable(df.values[0:20, 0:2]))
@@ -98,15 +98,15 @@ lendata = len(identifiers)
 splitted_identifiers = list(itertools.chain.from_iterable(df.values[:, 1:2]))
 indexes = range(0, lendata)
 
-# identifiers_file = open("tmp/identifiers_tmp.txt", 'w')
-# identifiers_file.write(','.join(identifiers))
-# splitted_identifiers_file = open("tmp/splitted_identifiers_tmp.txt", 'w')
-# splitted_identifiers_file.write(','.join(splitted_identifiers))
+identifiers_file = open("tmp/identifiers_tmp.txt", 'w')
+identifiers_file.write(','.join(identifiers))
+splitted_identifiers_file = open("tmp/splitted_identifiers_tmp.txt", 'w')
+splitted_identifiers_file.write(','.join(splitted_identifiers))
 
-# identifiers_file.close()
-# splitted_identifiers_file.close()
-# print("writing finished")
-# sys.exit()
+identifiers_file.close()
+splitted_identifiers_file.close()
+print("writing finished")
+sys.exit()
 
 datas = df.values[:lendata, 0:2]
 datas = np.column_stack((indexes, datas))
