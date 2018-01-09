@@ -1,18 +1,22 @@
 import pandas as pd
 import configparser
+import random
 import numpy as np
 import csv
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
-oracle_samples_file = cf.get("original_oracles", "bt11_oracle_samples")
-hs_oracle_samples_file = cf.get("bt11_hs_data", "oracle_samples_file")
-nhs_oracle_samples_file = cf.get("bt11_nhs_data", "oracle_samples_file")
+oracle_samples_file = cf.get("original_oracles", "binkley_oracle_samples")
+hs_oracle_samples_file = cf.get("binkley_hs_data", "oracle_samples_file")
+nhs_oracle_samples_file = cf.get("binkley_nhs_data", "oracle_samples_file")
 
 VERBOSE = True
 
 df = pd.read_csv(oracle_samples_file, header=None, keep_default_na=False)
-samples = df.values
+num_of_identifier = len(df.values)
+random_ind = list(range(0, num_of_identifier))
+random.shuffle(random_ind)
+samples = df.values[random_ind[:], :]
 
 hardsplit_bt11_result_csv = open(hs_oracle_samples_file, 'w', newline='')
 csvwriter = csv.writer(hardsplit_bt11_result_csv)
@@ -23,7 +27,7 @@ csvwriter2 = csv.writer(non_hardsplit_bt11_result_csv)
 # 查看最大长度
 max_length = 30	
 
-num_of_identifier = len(samples)
+
 
 # TO-DO merge this two function
 def padding_chars(chars_list):
@@ -80,6 +84,8 @@ count = 0
 full_softword_set = []
 full_softsplit_set = []
 total = set()
+kk = 0
+uu = 0
 for h in range(num_of_identifier):
 	identifier = samples[h][0]
 	splitted_identifier = samples[h][1]
@@ -116,13 +122,15 @@ for h in range(num_of_identifier):
 	softsplits.append(generate_softsplit(identifier[prev_pos:len(identifier)], list(samples[h][prev_pos + 2 + 30 :len(identifier)+2 +30])))
 
 	# 统计、输出、并去除错误的结果
-	print(identifier, softwords)
+	# print(identifier, softwords)
 	if len(softwords) >1 and VERBOSE and not check_uncorrect_hardsplit(softwords_seqs):
 		# print(identifier, softwords, softwords_chars, softwords_seqs)
 		count = count +1
 		continue
 
-	for k in range(len(softwords)):
+	num_of_softwords = len(softwords)
+	print(h)
+	for k in range(num_of_softwords):
 		orgdata = []
 		if(len(softwords[k]) > max_length):
 			max_length = len(softwords[k])
@@ -130,18 +138,22 @@ for h in range(num_of_identifier):
 		orgdata.append(softsplits[k])
 		full_softword_set.append(softwords[k])
 		full_softsplit_set.append(softsplits[k])
+		# # remove same samples already in the dataset
 		# unique_softiterm = softwords[k] + softsplits[k] + ''.join(softwords_chars[k]) + ''.join(softwords_seqs[k])
 		# if unique_softiterm in total:
 		# 	continue
 		# else:
 		# 	total.add(softwords[k] + softsplits[k] + ''.join(softwords_chars[k]) + ''.join(softwords_seqs[k]))
-		csvwriter.writerow(orgdata + padding_chars(softwords_chars[k]) + padding_seqs(softwords_seqs[k]))
+		index_info = str(h) + "_" + str(k) + "_" +str(num_of_softwords)
+		csvwriter.writerow(orgdata + padding_chars(softwords_chars[k]) + padding_seqs(softwords_seqs[k]) + [index_info])
+		
 	
 	# 过滤后的softsplit
 	nhs_orgdata = []
 	nhs_orgdata.append(identifier)
 	nhs_orgdata.append(splitted_identifier)
 	csvwriter2.writerow(nhs_orgdata + list(samples[h][2:32]) + list(samples[h][32:62]))
+	print(h)
 
 # 存在重复项
 print(len(set(full_softword_set)))

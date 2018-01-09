@@ -22,6 +22,7 @@ from __future__ import print_function
 
 import collections
 import os
+import numpy as np
 
 import tensorflow as tf
 
@@ -102,9 +103,21 @@ def ptb_producer(raw_data, batch_size, num_steps, name=None):
 
     i = tf.train.range_input_producer(epoch_size, shuffle=False).dequeue()
     sequence = raw_data[:, :30]
-    label = raw_data[:, -30:]
+    label = raw_data[:, 30:60]
+    index_info = raw_data[:, 60:]
+    # 因为多了一列不是int64的类型，ndarray自动把dtype转换成了object
+    # Expected binary or unicode string, got 10 这种问题跟学妹的类似 都是type问题
+    # 如果是hsmode 则需要转换一层
+    # print(type(sequence))
+    # print(sequence.dtype)
+    z = None
+    if index_info.shape[1]!=0:
+      sequence = sequence.astype(np.int64)
+      label = label.astype(np.int64)
+      z = tf.strided_slice(index_info, [i*batch_size, 0] , [(i+1) * batch_size, 1])
+      z.set_shape([batch_size, 1])
     x = tf.strided_slice(sequence, [i * batch_size, 0], [(i+1) * batch_size, num_steps])
     x.set_shape([batch_size, num_steps])
     y = tf.strided_slice(label, [i * batch_size, 0], [(i+1) * batch_size, num_steps])
     y.set_shape([batch_size, num_steps])
-    return x, y
+    return x, y, z

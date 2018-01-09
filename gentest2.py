@@ -28,6 +28,13 @@ def calculate(measure):
 		total = total + values[i]
 	print(round(total/len_calculated, 3))
 
+
+def reset_calculated_file():
+	temp = open("tmp/already_calculated.csv", 'w', newline='')
+	temp.write("index,accuracy,precision,recall,fmeasure")
+	temp.write("\n")
+	temp.close()
+
 try:  
 	opts, args = getopt.getopt(sys.argv[1:], "hrc:o:", ["help", "output="])  
 except getopt.GetoptError:
@@ -41,7 +48,7 @@ for o, a in opts:
 		sys.exit()
 	if o in ["-r"]:
 		print("reseting data...")
-		# reset_calculated_file()
+		reset_calculated_file()
 		sys.exit()
 
 
@@ -57,22 +64,13 @@ def write_to_calculated(result):
 
 mutex = threading.Lock()
 
-def reset_calculated_file():
-	temp = open("tmp/already_calculated.csv", 'w', newline='')
-	temp.write("index,accuracy,precision,recall,fmeasure")
-	temp.write("\n")
-	temp.close()
-
-
-# reset_calculated_file()
-# sys.exit()
 
 # 捕获全局的异常
 def excepthook(type, value, trace):
 	'''write the unhandle exception to log'''
 	print('Unhandled Error: %s: %s'%(str(type), str(value)))
-	if str(type).find("ExceptionWithTraceback") != -1:
-		os.system('python gentest2.py')
+	# if str(type).find("ExceptionWithTraceback") != -1:
+		# os.system('python gentest2.py')
 	sys.__excepthook__(type, value, trace)
 sys.excepthook = excepthook
 # https://bugs.python.org/review/20980/diff/11367/Lib/multiprocessing/pool.py
@@ -92,17 +90,27 @@ calculated_indexes = list(itertools.chain.from_iterable(df1.values[:, 0:1]))
 print(len(calculated_indexes))
 
 
-df = pd.read_csv("tmp/hardsplit_binkley_oracle_samples.csv", header=None, keep_default_na=False)
+df = pd.read_csv("tmp/non_hardsplit_bt11_oracle_samples.csv", header=None, keep_default_na=False)
 identifiers = list(itertools.chain.from_iterable(df.values[:, 0:1]))
 lendata = len(identifiers)
 # identifiers = list(itertools.chain.from_iterable(df.values[0:20, 0:2]))
 # print(identifiers)
 splitted_identifiers = list(itertools.chain.from_iterable(df.values[:, 1:2]))
 indexes = range(0, lendata)
-# print(','.join(splitted_identifiers))
+
+# identifiers_file = open("tmp/identifiers_tmp.txt", 'w')
+# identifiers_file.write(','.join(identifiers))
+# splitted_identifiers_file = open("tmp/splitted_identifiers_tmp.txt", 'w')
+# splitted_identifiers_file.write(','.join(splitted_identifiers))
+
+# identifiers_file.close()
+# splitted_identifiers_file.close()
+# print("writing finished")
+# sys.exit()
 
 datas = df.values[:lendata, 0:2]
 datas = np.column_stack((indexes, datas))
+# print(datas)
 
 # 预处理数据 减轻多线程压力
 preprocessed_datas = []
@@ -110,6 +118,10 @@ for i in range(len(datas)):
 	if i not in calculated_indexes:
 		preprocessed_datas.append(datas[i])
 
+# print(preprocessed_datas)
+if len(preprocessed_datas) == 0:
+	print("no more data to process, so ending the procedure..")
+	sys.exit()
 print("preprocess finished...")
 
 pool = ThreadPool(10)
@@ -126,10 +138,10 @@ def split_and_check(data):
 	# handle exception of url请求
 	identifier = data[1].replace('.', '_')
 	url = base_url + "?&id=" + identifier + "&lang=java&n=" + str(num_of_splitting) + "&rand=" + str(rand)
-	# print("proceesing ", identifier)
+	print("proceesing ", identifier)
 	body = request.urlopen(url).read()
 	# print("done with", identifier)
-	print(identifier, body)
+	# print(identifier, body)
 	body = body.decode("utf-8")
 	wrong_split = True
 	softwords = body.split('\n')
@@ -142,14 +154,29 @@ def split_and_check(data):
 	parts = splitted_identifier.split('-')
 	condition = lambda part : part not in ['.', ':', '_', '~']
 	parts = [x for x in filter(condition, parts)]
+
+	# print(identifier)
+	# print(gentest_split_result)
+	# print(parts)
+
 	# calculate precision, recall, fmeasure
-	correct_splits = set([i for i in range(len(splitted_identifier)) if splitted_identifier[i:].startswith('-')])
+	temp_right_answer = "-".join(parts)
+	cleaned_identifier = identifier.replace("_","")
+	temp_offset = 0
+	correct_splits = set()
+	for i in range(len(temp_right_answer)):
+		if temp_right_answer[i:].startswith('-'):
+			correct_splits.add(i - temp_offset)
+			temp_offset = temp_offset + 1
 	predict_splits = set()
 	prev_pos = 0
 	for i in range(len(gentest_split_result) - 1) :
-		prev_pos = identifier.find(gentest_split_result[i], prev_pos) + len(gentest_split_result[i])
+		prev_pos = cleaned_identifier.find(gentest_split_result[i], prev_pos) + len(gentest_split_result[i])
 		predict_splits.add(prev_pos)
 	precise_splits = correct_splits & predict_splits
+	# print(predict_splits)
+	# print(correct_splits)
+	
 	if len(predict_splits) == 0 and len(correct_splits) == 0:
 		precision = 1
 	elif len(predict_splits) == 0 and len(correct_splits) !=0:
@@ -180,7 +207,7 @@ def split_and_check(data):
 	write_to_calculated([int(data[0]),count, precision, recall, fmeasure])
 	return count, precision, recall, fmeasure
 
-counts, precisons, recalls, fmeasures =  zip(*pool.map(split_and_check, datas))
+counts, precisons, recalls, fmeasures =  zip(*pool.map(split_and_check, preprocessed_datas))
 pool.close()
 pool.join()
 

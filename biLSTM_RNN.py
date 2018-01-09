@@ -17,8 +17,9 @@ from tensorflow.contrib.layers.python.layers import initializers
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
-EXPERI_DATA_FILE = cf.get("binkley_hs_data", "experi_data_path")
-CODED_FILE = cf.get("binkley_hs_data", "coded_file")
+EXPERI_DATA_FILE = cf.get("bt11_hs_data", "experi_data_path")
+# CODED_FILE = cf.get("binkley_hs_data", "coded_file")
+CODED_FILE = "tmp/hs_oracle_samples/bt11/"
 
 flags = tf.flags
 logging = tf.logging
@@ -94,8 +95,8 @@ def get_rawdata(path):
 	test_len = data_len - train_len - valid_len
 	if FLAGS.train_option == "pure_corpus":
 		# 配置一
+		random_ind = list(range(0, len(data)))
 		if FLAGS.shuffle:
-			random_ind = list(range(0, len(data)))
 			random.shuffle(random_ind)
 		train_data = data[random_ind[:train_len], :]
 		valid_data = data[random_ind[train_len:train_len+valid_len], :]
@@ -436,7 +437,7 @@ def run_epoch(session, model, data, eval_op, verbose, epoch_size, Name="NOFOCUS"
 	# for step, (x, y) in enumerate(reader.ptb_iterator(data, model.batch_size, model.num_steps)):
 	for i in range(epoch_size):
 		# x,y = get_feeddata(session, i, data, model.batch_size, model.num_steps)
-		x, y = session.run(data)
+		x, y, _ = session.run(data)
 		fetches = [model.cost, model._final_state_fw, model._final_state_bw, eval_op]
 		feed_dict = {}
 		feed_dict[model.input_data] = x
@@ -457,7 +458,7 @@ def get_result(session, model, data, eval_op, verbose, epoch_size):
 	for i in range(epoch_size):
 		# 保证有序性
 		# x, y = get_feeddata(session, i, data, batch_size, num_steps)
-		x, y = session.run(data)
+		x, y, z = session.run(data)
 		fetches = [model.tags_scores, model.l, model.trans, model.input_data]
 		feed_dict = {}
 		feed_dict[model.input_data] = x
@@ -477,7 +478,11 @@ def get_result(session, model, data, eval_op, verbose, epoch_size):
 		# result.append(predicts)
 		# # 矩阵合并
 		# # 将原单词取回 避免多线程的打乱
-		csvwriter.writerows(np.column_stack((input_data, y, batch_paths)))
+		# print("hard_split mode...")
+		if(z is not None):
+			csvwriter.writerows(np.column_stack((input_data, y, batch_paths, z)))
+		else:
+			csvwriter.writerows(np.column_stack((input_data, y, batch_paths)))
 	print("%s finished and saved" % result_csv_name)
 
 def get_config():
@@ -493,7 +498,7 @@ def main(argv=None):
 	# 获取原始数据
 	# raw_data = reader.ptb_raw_data(FLAGS.data_path)
 	# train_data, valid_data, test_data, _ = raw_data
-	train_data, valid_data, test_data = get_rawdata(FLAGS.data_path)
+	train_data, valid_data, test_data = get_rawdata(FLAGS.data_path + str(FLAGS.iteration) + "_hardsplit_bt11_coded_files.csv")
 
 
 	print("reading file finish")

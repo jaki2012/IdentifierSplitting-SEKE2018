@@ -8,9 +8,12 @@ import numpy as np
 import time 
 import string
 import random
+import sys
 import re
 import configparser
 from sklearn.preprocessing import LabelEncoder
+
+# code_iter = sys.argv[1]
 
 CHEAT_FILE = "tmp/cheat_file.csv"
 CHEAT_SPLITTING_FILE = "tmp/cheat_splitting_file1.csv"
@@ -24,8 +27,10 @@ BT11_EXPERI_RESULT_FILE = "tmp/bt11_experi_result.csv"
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
-processing_project = "binkley_hs_data"
+processing_project = "binkley_nhs_data"
 CODED_FILE = cf.get(processing_project, "coded_file")
+# CODED_FILE = "/Users/lijiechu/Documents/essay_pythons/tmp/hs_random_oracles/binkley/" + str(code_iter) + "_hardsplit_binkley_coded_files.csv"
+# print(CODED_FILE)
 SAMEPLES_FILE = cf.get(processing_project, "oracle_samples_file")
 EXPERI_DATA_PATH = cf.get(processing_project, "experi_data_path")
 
@@ -44,7 +49,9 @@ id2word = pd.Series(set_words, index=set_ids)
 tag2id = pd.Series(tag_ids, index=tags)
 id2tag = pd.Series(tags, index=tag_ids)
 
-def find_split_positions(seqs_list):
+def find_split_positions(chars_list, seqs_list):
+	# hard_split 没有 - 字符的干扰
+	# nonhard_split 需要去除，跟GENTEST\INTT保持一致
 	positions = []
 	for i in range(len(seqs_list) - 1):
 		if seqs_list[i] == 'S' and seqs_list[i+1] == 'S':
@@ -75,8 +82,8 @@ def cal_precison(verbose=False):
 	total_recall = 0
 	total_fmeasure = 0
 	for j in range(lenresults):
-		correct_splits = find_split_positions(labels[j])
-		predict_splits = find_split_positions(logits[j])
+		correct_splits = find_split_positions(correct_answer[j], labels[j])
+		predict_splits = find_split_positions(correct_answer[j], logits[j])
 		precise_splits = correct_splits & predict_splits
 		
 		if len(predict_splits) == 0 and len(correct_splits) == 0:
@@ -106,10 +113,123 @@ def cal_precison(verbose=False):
 	avg_precision = round((total_precision/lenresults),3)
 	avg_recall = round((total_recall/lenresults),3)
 	avg_fmeasure = round((total_fmeasure/lenresults), 3)
-	print("precision of gentest is: %.2f" % avg_precision)
-	print("recall of gentest is: %.2f" % avg_recall)
-	print("fmeasure of gentest is: %.2f" % avg_fmeasure )
-	return avg_fmeasure
+	# print("precision of gentest is: %.2f" % avg_precision)
+	# print("recall of gentest is: %.2f" % avg_recall)
+	# print("fmeasure of gentest is: %.2f" % avg_fmeasure )
+	return avg_recall
+
+def cal_accuracy_hs(verbose=False):
+	df = pd.read_csv("tmp/final_result.csv", header=None)
+	correct_answer = df.values[:, :30]
+	total_result = df.values[:, 30:90]
+	lenresults = total_result.shape[0]
+	labels = total_result[:, :30]
+	logits = total_result[:, 30:]
+	index_infos = df.values[:, 90:]
+	# 准确的数目
+	right_sum = 0
+
+	result_pos = []
+	index_ = []
+	index_total_count = []
+	index_accums = []
+	# preprocess
+	for y in range(lenresults):
+		index_info = []
+		items = index_infos[y][0].split('_')
+		for item in items:
+			index_info.append(int(item))
+		if index_info[0] in index_:
+			pos = index_.index(index_info[0])
+			index_accums[pos].append(index_info[1])
+			result_pos[pos].append(y)
+		else:
+			index_.append(index_info[0])
+			index_total_count.append(index_info[2])
+			index_accums.append([index_info[1]])
+			result_pos.append([y])
+
+	# for i in range(len(index_)):
+	# 	print(index_[i], len(index_accums[i]), index_total_count[i])
+
+	# 实际的有效identifier个数
+	num_valid_identifiers = 0
+	# 正确切分的identifier个数
+	num_correct_splits = 0
+	incorrect_index = []
+	accm = 0
+	for y in range(len(index_)):
+		if index_total_count[y] == len(index_accums[y]):
+			# print(index_total_count[y], len(index_accums[y]))
+			num_valid_identifiers = num_valid_identifiers + 1
+			right_sum = 0
+			show_rsitu = []
+			show_wsitu = []
+			for z in range(len(index_accums[y])):
+				accm = accm + 1
+				j = result_pos[y][z]
+				right = True
+				list1 = labels[j]
+				# print(list1)
+				list2 = logits[j]
+				# print(list2)
+				# 准确率计算方式之一
+				# 还有一种方式是利用字符串比较（截取有效字符串），后面的不管
+				for i in range(len(list1)):
+					right = True
+					if(list1[i] == 'N'):
+						if list2[i] != 'N':
+							right = False
+						break
+					elif list1[i]!=list2[i]:
+						right = False
+						break;
+				if right:
+					right_sum  = right_sum +1
+				else:
+					incorrect_index.append(j)
+					if True:
+						# print(''.join(correct_answer[j]))
+						tt = find_split_positions(correct_answer[j],list1)
+						uu = find_split_positions(correct_answer[j],list2)
+						ttt = []
+						uuu = []
+						for i in range(len(list1)):
+							if i in tt:
+								ttt.append('-')
+							ttt.append(correct_answer[j][i])
+						for i in range(len(list2)):
+							if i in uu:
+								uuu.append('-')
+							uuu.append(correct_answer[j][i])
+						# print(''.join(ttt))
+						show_rsitu.append(''.join(ttt).strip(' '))
+						# print(''.join(uuu))
+						show_wsitu.append(''.join(uuu).strip(' '))
+			if len(index_accums[y]) == right_sum:
+				num_correct_splits = num_correct_splits + 1
+			else:
+				print(show_rsitu)
+				print(show_wsitu)
+		else:
+			print("yep")
+			continue
+
+	
+	
+	# print(lenresults)
+	a = []
+	for i in range(lenresults):
+		a.append(''.join(correct_answer[i]))
+	b= set(a)
+	# print(len(a))
+	# print(len(b))
+	print(len(incorrect_index))
+	print(len(incorrect_index)/accm)
+	print("generate %d valid identifiers from %d result_samples" % (num_valid_identifiers, lenresults))
+	print("%d / %d are correctly splitted overall" % (num_correct_splits, num_valid_identifiers))
+	
+	return round((num_correct_splits/num_valid_identifiers),3)
 
 def cal_accuracy(verbose=False):
 	df = pd.read_csv("tmp/final_result.csv", header=None)
@@ -188,14 +308,26 @@ def vec2word(file):
 	lendict = df1.values.shape[0]
 	total_word_id_list = list(itertools.chain.from_iterable(df1.values[:, :30]))
 	total_tag_id_list = list(itertools.chain.from_iterable(df1.values[:, 30:60]))
-	total_tag_id_list1 = list(itertools.chain.from_iterable(df1.values[:, 60:]))
+	total_tag_id_list1 = list(itertools.chain.from_iterable(df1.values[:, 60:90]))
+	index_info_list = list(itertools.chain.from_iterable(df1.values[:, 90:]))
 	words = coding(total_word_id_list, id2word)
 	tags = coding(total_tag_id_list, id2tag)
 	tags1 = coding(total_tag_id_list1, id2tag)
-	csvwriter.writerows(np.column_stack((
-		np.array(words).reshape(lendict,30), 
-		np.array(tags).reshape(lendict,30), 
-		np.array(tags1).reshape(lendict,30))))
+	index_infos = []
+	if len(index_info_list) != 0:
+		for index_info in index_info_list:
+			# index_infos.append(index_info.decode('utf-8'))
+			index_infos.append(index_info.strip('b\''))
+		csvwriter.writerows(np.column_stack((
+			np.array(words).reshape(lendict,30), 
+			np.array(tags).reshape(lendict,30), 
+			np.array(tags1).reshape(lendict,30),
+			np.array(index_infos).reshape(lendict,1))))
+	else:
+		csvwriter.writerows(np.column_stack((
+			np.array(words).reshape(lendict,30), 
+			np.array(tags).reshape(lendict,30), 
+			np.array(tags1).reshape(lendict,30))))
 	# csvwriter.writerows(final_result)
 
 def word2vec(total_dict_list, dict_way=False):
@@ -204,6 +336,10 @@ def word2vec(total_dict_list, dict_way=False):
 	df = pd.read_csv(SAMEPLES_FILE, header=None)
 	total_dict = df.values[:, 2:]
 	lendict = total_dict.shape[0]
+	hs_mode = False
+	if total_dict.shape[1] == 61:
+		print("aha")
+		hs_mode = True
 	if dict_way:
 		total_dict_list = list(itertools.chain.from_iterable(total_dict))
 		le = LabelEncoder()
@@ -225,7 +361,10 @@ def word2vec(total_dict_list, dict_way=False):
 		# 	kkk.append(ddd[i])
 		# print(kkk)
 		# print(len(set(kkk)))
-		csvwriter.writerows(np.column_stack((np.array(word_ids).reshape(lendict,30), np.array(tag_ids).reshape(lendict,30))))
+		if hs_mode:
+			csvwriter.writerows(np.column_stack((np.array(word_ids).reshape(lendict,30), np.array(tag_ids).reshape(lendict,30), df.values[:, 62:])))
+		else:
+			csvwriter.writerows(np.column_stack((np.array(word_ids).reshape(lendict,30), np.array(tag_ids).reshape(lendict,30))))
 
 def coding(words, projection):
 	ids = list(projection[words])
@@ -395,9 +534,10 @@ def scan_experi_data():
 				continue
 			vec2word(os.path.join(path, file))
 			# print(os.path.join(path, file))
-			accuracy = cal_accuracy()
-			print(accuracy)
-			# cal_precison()
+			# accuracy = cal_accuracy()
+			# accuracy = cal_accuracy_hs()
+			# print(accuracy)
+			precision = cal_precison()
 			# 后向断言
 			pattern_train_option = re.compile(r'.*?(?=_cnn)')
 			# 前向断言用search
@@ -417,8 +557,8 @@ def scan_experi_data():
 				# print(m1.group(), m2.group(), m3.group().strip(string.digits), m4.group())
 				# print(accuracy)
 				# 转化为int才能排序
-				print(i, m1.group(), m2.group(), m3.group().strip(string.digits), int(m4.group()), accuracy)
-				experi_results.append((i, m1.group(), m2.group(), m3.group().strip(string.digits), int(m4.group()), accuracy))
+				print(i, m1.group(), m2.group(), m3.group().strip(string.digits), int(m4.group()), precision)
+				experi_results.append((i, m1.group(), m2.group(), m3.group().strip(string.digits), int(m4.group()), precision))
 				# csvwriter.writerow((i, m1.group(), m2.group(), m3.group().strip(string.digits), m4.group(), accuracy))
 
 	for train_option in ["pure_corpus", "mixed", "pure_oracle"]:
@@ -433,14 +573,15 @@ def scan_experi_data():
 
 
 if __name__ == '__main__':
-	word2vec(total_dict_list)
+	# print()
+	# word2vec(total_dict_list)
 	# vec2word()
 	# cal_accuracy()
 	# trick_on_dataset()
-	# scan_experi_data()
+	scan_experi_data()
 	# sort_experi_accuracies()
 	# calculate_wordsegment_accuracy(False)
-	# print(analyze_accuracy(train_option="pure_corpus", cnn_option=2, shuffle_option=True))
+	# print(analyze_accuracy(train_option="pure_corpus", cnn_option=1, shuffle_option=True))
 	# find_split_positions(['S','B','M','M','E','B','M','M','E','S'])
 	# print(cal_precison())
 	# print(cal_accuracy())
