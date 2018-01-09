@@ -25,7 +25,7 @@ BT11_EXPERI_RESULT_FILE = "tmp/bt11_experi_result.csv"
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
-processing_project = "binkley_hs_data"
+processing_project = "bt11_nhs_data"
 CODED_FILE = cf.get(processing_project, "coded_file")
 # print(CODED_FILE)
 SAMEPLES_FILE = cf.get(processing_project, "oracle_samples_file")
@@ -283,6 +283,12 @@ def cal_accuracy_hs(filename, verbose=False):
 	return round((num_correct_splits/num_valid_identifiers),3)
 
 def cal_accuracy(filename, verbose=False):
+	identifilename = "tmp/foroutside2/"+ filename.split('.')[0]+"_identi.txt"
+	resultfilename = "tmp/foroutside2/"+ filename.split('.')[0]+"_result.txt"
+	answerfilename = "tmp/foroutside2/"+ filename.split('.')[0]+"_answer.txt"
+	resultfile = open(resultfilename,'w')
+	answerfile = open(answerfilename,'w')
+	identifile = open(identifilename,'w')
 	df = pd.read_csv("tmp/final_result.csv", header=None)
 	correct_answer = df.values[:, :30]
 	total_result = df.values[:, 30:]
@@ -300,6 +306,9 @@ def cal_accuracy(filename, verbose=False):
 	# print(len(a))
 	# print(b)
 	# print(len(b))
+	results = []
+	answers = []
+	identis = []
 	for j in range(lenresults):
 		right = True
 		list1 = labels[j]
@@ -319,12 +328,50 @@ def cal_accuracy(filename, verbose=False):
 				break;
 		if right:
 			right_sum  = right_sum +1
+			# print(''.join(correct_answer[j]))
+			identis.append(''.join(correct_answer[j]).strip(' '))
+			tt = find_split_positions(correct_answer[j],list1)
+			uu = find_split_positions(correct_answer[j],list2)
+			ttt = []
+			uuu = []
+			for i in range(len(list1)):
+				if i in tt:
+					ttt.append('-')
+				ttt.append(correct_answer[j][i])
+			for i in range(len(list2)):
+				if i in uu:
+					uuu.append('-')
+				uuu.append(correct_answer[j][i])
+			# print(''.join(ttt))
+			answers.append(''.join(ttt).strip(' '))
+			# print(''.join(uuu))
+			results.append(''.join(uuu).strip(' '))
 		else:
 			incorrect_index.append(j)
-			if verbose:
-				print(''.join(correct_answer[j]))
-				print(''.join(list1))
-				print(''.join(list2))
+			if True:
+				# print(''.join(correct_answer[j]))
+				identis.append(''.join(correct_answer[j]).strip(' '))
+				tt = find_split_positions(correct_answer[j],list1)
+				uu = find_split_positions(correct_answer[j],list2)
+				ttt = []
+				uuu = []
+				for i in range(len(list1)):
+					if i in tt:
+						ttt.append('-')
+					ttt.append(correct_answer[j][i])
+				for i in range(len(list2)):
+					if i in uu:
+						uuu.append('-')
+					uuu.append(correct_answer[j][i])
+				# print(''.join(ttt))
+				answers.append(''.join(ttt).strip(' '))
+				# print(''.join(uuu))
+				results.append(''.join(uuu).strip(' '))
+
+	identifile.write(','.join(identis))
+	resultfile.write(','.join(results))
+	answerfile.write(','.join(answers))
+
 	if verbose:
 		print("Accuracy is %.3f" % (right_sum/lenresults))
 		print("incorrect splitting %d / %d" %(len(incorrect_index), lenresults))
@@ -619,12 +666,12 @@ def scan_experi_data():
 				code_iter = int(m4.group())
 
 			a = "/Users/lijiechu/Documents/essay_pythons/tmp/hs_random_oracles/binkley/" + str(code_iter) + "_hardsplit_binkley_oracle_samples.csv"
-			vec2word(os.path.join(path, file), a)
+			vec2word(os.path.join(path, file))
 			# print(os.path.join(path, file))
-			# accuracy = cal_accuracy()
-			accuracy = cal_accuracy_hs(file)
+			# accuracy = cal_accuracy_hs(file)
+			accuracy = cal_accuracy(file)
 			# print(accuracy)
-			precision = cal_precison()
+			# precision = cal_precison()
 
 			if m1:
 				i = i + 1
