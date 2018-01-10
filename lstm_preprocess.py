@@ -25,7 +25,7 @@ BT11_EXPERI_RESULT_FILE = "tmp/bt11_experi_result.csv"
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
-processing_project = "bt11_nhs_data"
+processing_project = "bt11_hs_data"
 CODED_FILE = cf.get(processing_project, "coded_file")
 # print(CODED_FILE)
 SAMEPLES_FILE = cf.get(processing_project, "oracle_samples_file")
@@ -665,11 +665,11 @@ def scan_experi_data():
 			if m1:
 				code_iter = int(m4.group())
 
-			a = "/Users/lijiechu/Documents/essay_pythons/tmp/hs_random_oracles/binkley/" + str(code_iter) + "_hardsplit_binkley_oracle_samples.csv"
-			vec2word(os.path.join(path, file))
+			a = "/Users/lijiechu/Documents/essay_pythons/tmp/hs_random_oracles/bt11/" + str(code_iter) + "_hardsplit_bt11_oracle_samples.csv"
+			vec2word(os.path.join(path, file),a)
 			# print(os.path.join(path, file))
-			# accuracy = cal_accuracy_hs(file)
-			accuracy = cal_accuracy(file)
+			accuracy = cal_accuracy_hs(file)
+			# accuracy = cal_accuracy(file)
 			# print(accuracy)
 			# precision = cal_precison()
 
