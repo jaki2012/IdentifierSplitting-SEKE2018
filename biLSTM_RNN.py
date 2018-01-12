@@ -18,8 +18,8 @@ from tensorflow.contrib.layers.python.layers import initializers
 cf = configparser.ConfigParser()
 cf.read('config.ini')
 # EXPERI_DATA_FILE = cf.get("bt11_hs_data", "experi_data_path")
-EXPERI_DATA_FILE = "experi_data4/bt11/"
-CODED_FILE = cf.get("bt11_nhs_data", "coded_file")
+EXPERI_DATA_FILE = "experi_data4/binkley/"
+CODED_FILE = cf.get("binkley_nhs_data", "coded_file")
 
 flags = tf.flags
 logging = tf.logging
@@ -103,8 +103,8 @@ def get_rawdata(path):
 		test_data = data[random_ind[train_len+valid_len:], :]
 	elif FLAGS.train_option == "mixed":
 		# 配置二
-		train_data = data[:9025, :]
-		shuffle_data = data[9025:, :]
+		train_data = data[:32440, :]
+		shuffle_data = data[32440:, :]
 		lenshuffle = len(shuffle_data)
 		random_ind = list(range(0, lenshuffle))
 		if FLAGS.shuffle:

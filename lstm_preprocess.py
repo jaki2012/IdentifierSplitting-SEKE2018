@@ -28,26 +28,26 @@ trick_bt11_txt = open("tmp/trickbt11.txt", 'a')
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
-processing_project = "bt11_nhs_data"
+processing_project = "binkley_nhs_data"
 CODED_FILE = cf.get(processing_project, "coded_file")
 # print(CODED_FILE)
 SAMEPLES_FILE = cf.get(processing_project, "oracle_samples_file")
 EXPERI_DATA_PATH = cf.get(processing_project, "experi_data_path")
 EXPERI_DATA_PATH = "experi_data4/bt11/"
-# df = pd.read_csv(SAMEPLES_FILE, header=None)
-# total_dict = df.values[:, 2:32]
-# total_dict_list = list(itertools.chain.from_iterable(total_dict))
-# sr_allwords = pd.Series(total_dict_list)
-# sr_allwords = sr_allwords.value_counts()
-# set_words = sr_allwords.index
-# set_ids = range(0, len(set_words))
-# print(len(set_words))
-# tags = [ 'N', 'B', 'M', 'E', 'S']
-# tag_ids = range(len(tags))
-# word2id = pd.Series(set_ids, index=set_words)
-# id2word = pd.Series(set_words, index=set_ids)
-# tag2id = pd.Series(tag_ids, index=tags)
-# id2tag = pd.Series(tags, index=tag_ids)
+df = pd.read_csv(SAMEPLES_FILE, header=None)
+total_dict = df.values[:, 2:32]
+total_dict_list = list(itertools.chain.from_iterable(total_dict))
+sr_allwords = pd.Series(total_dict_list)
+sr_allwords = sr_allwords.value_counts()
+set_words = sr_allwords.index
+set_ids = range(0, len(set_words))
+print(len(set_words))
+tags = [ 'N', 'B', 'M', 'E', 'S']
+tag_ids = range(len(tags))
+word2id = pd.Series(set_ids, index=set_words)
+id2word = pd.Series(set_words, index=set_ids)
+tag2id = pd.Series(tag_ids, index=tags)
+id2tag = pd.Series(tags, index=tag_ids)
 
 def find_split_positions(chars_list, seqs_list):
 	# hard_split 没有 - 字符的干扰
@@ -711,11 +711,11 @@ def scan_experi_data():
 
 if __name__ == '__main__':
 	# print()
-	# word2vec(total_dict_list)
+	word2vec(total_dict_list)
 	# vec2word()
 	# cal_accuracy()
 	# trick_on_dataset()
-	scan_experi_data()
+	# scan_experi_data()
 	# sort_experi_accuracies()
 	# calculate_wordsegment_accuracy(False)
 	# print(analyze_accuracy(train_option="pure_corpus", cnn_option=1, shuffle_option=True))

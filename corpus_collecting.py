@@ -9,7 +9,7 @@ tknzr = get_tokenizer("en_US")
 texts = [w for w in tknzr("thisissomesimpletext")]
 
 ORACLE_FILE = "/Users/lijiechu/Desktop/loyola-udelaware-identifier-splitting-oracle.txt"
-ORACLE_FILE = "tmp/trick11.txt"
+# ORACLE_FILE = "tmp/trick11.txt"
 ORACLE_WORDS = "tmp/oracle_words.txt"
 GOOGLE_NORMAL_WORDS_FILE = "/Users/lijiechu/Documents/google-10000-english/google-10000-english-no-swears.txt"
 CHEAT_FILE = "tmp/cheat_file.csv"
@@ -32,8 +32,6 @@ def really_trick():
 	for line in all_lines:
 		data = line.split(' ')
 		identifier = data[6]
-		print(identifier)
-		print(len(identifier))
 		words = identifier.split("-")
 		all_words = all_words + words
 	# 去除重复项 不过不会保持原来的顺序

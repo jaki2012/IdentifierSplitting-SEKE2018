@@ -4,7 +4,7 @@ import pandas as pd
 
 # file = "/Users/lijiechu/Desktop/loyola-udelaware-identifier-splitting-oracle.txt"
 file = "tmp/cheat_splitting_file.csv"
-csv_file = "tmp/bt11_data1.csv"
+csv_file = "tmp/binkley_data1.csv"
 
 csv_result = open(csv_file, 'w', newline='')
 csvwriter = csv.writer(csv_result)
