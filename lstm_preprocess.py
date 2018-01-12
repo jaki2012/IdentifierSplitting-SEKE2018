@@ -23,14 +23,17 @@ BT11_EXPERI_DATA_PATH = "tmp/shs_bt11_experi_data"
 EXPERI_RESULT_FILE = "tmp/experi_result.csv"
 BT11_EXPERI_RESULT_FILE = "tmp/bt11_experi_result.csv"
 
+
+trick_bt11_txt = open("tmp/trickbt11.txt", 'a')
+
 cf = configparser.ConfigParser()
 cf.read('config.ini')
-processing_project = "bt11_hs_data"
+processing_project = "bt11_nhs_data"
 CODED_FILE = cf.get(processing_project, "coded_file")
 # print(CODED_FILE)
 SAMEPLES_FILE = cf.get(processing_project, "oracle_samples_file")
 EXPERI_DATA_PATH = cf.get(processing_project, "experi_data_path")
-
+EXPERI_DATA_PATH = "experi_data4/bt11/"
 # df = pd.read_csv(SAMEPLES_FILE, header=None)
 # total_dict = df.values[:, 2:32]
 # total_dict_list = list(itertools.chain.from_iterable(total_dict))
@@ -309,7 +312,11 @@ def cal_accuracy(filename, verbose=False):
 	results = []
 	answers = []
 	identis = []
+	suck = 0
+	nosuck = 0
 	for j in range(lenresults):
+		if len(''.join(correct_answer[j]).strip(' ')) > 25:
+			nosuck = nosuck + 1
 		right = True
 		list1 = labels[j]
 		# print(list1)
@@ -347,6 +354,9 @@ def cal_accuracy(filename, verbose=False):
 			# print(''.join(uuu))
 			results.append(''.join(uuu).strip(' '))
 		else:
+			if len(''.join(correct_answer[j]).strip(' ')) > 25:
+				suck = suck + 1
+
 			incorrect_index.append(j)
 			if True:
 				# print(''.join(correct_answer[j]))
@@ -364,6 +374,7 @@ def cal_accuracy(filename, verbose=False):
 						uuu.append('-')
 					uuu.append(correct_answer[j][i])
 				# print(''.join(ttt))
+				trick_bt11_txt.write(''.join(ttt)+'\n')
 				answers.append(''.join(ttt).strip(' '))
 				# print(''.join(uuu))
 				results.append(''.join(uuu).strip(' '))
@@ -371,6 +382,8 @@ def cal_accuracy(filename, verbose=False):
 	identifile.write(','.join(identis))
 	resultfile.write(','.join(results))
 	answerfile.write(','.join(answers))
+
+	# print(suck, "/", nosuck)
 
 	if verbose:
 		print("Accuracy is %.3f" % (right_sum/lenresults))
@@ -393,7 +406,7 @@ def vec2word(file, a=None):
 	sr_allwords = sr_allwords.value_counts()
 	set_words = sr_allwords.index
 	set_ids = range(0, len(set_words))
-	# print(len(set_words))
+	print(len(set_words))
 	tags = [ 'N', 'B', 'M', 'E', 'S']
 	tag_ids = range(len(tags))
 	word2id = pd.Series(set_ids, index=set_words)
@@ -447,6 +460,7 @@ def vec2word(file, a=None):
 	# csvwriter.writerows(final_result)
 
 def word2vec(total_dict_list, dict_way=False):
+
 	coded_file = open(CODED_FILE, 'w', newline='')
 	csvwriter = csv.writer(coded_file)
 	df = pd.read_csv(SAMEPLES_FILE, header=None)
@@ -616,7 +630,7 @@ def analyze_accuracy(train_option=None, cnn_option=None, shuffle_option=None):
 	else:
 		shuffle_option = "False"
 	experi_accuracies = []
-	df = pd.read_csv("tmp/bt11_experi_result.csv", header=None)
+	df = pd.read_csv("tmp/experi_result.csv", header=None)
 	data = df.values
 	lendata = len(data)
 	count = 0
@@ -666,10 +680,10 @@ def scan_experi_data():
 				code_iter = int(m4.group())
 
 			a = "/Users/lijiechu/Documents/essay_pythons/tmp/hs_random_oracles/bt11/" + str(code_iter) + "_hardsplit_bt11_oracle_samples.csv"
-			vec2word(os.path.join(path, file),a)
+			vec2word(os.path.join(path, file))
 			# print(os.path.join(path, file))
-			accuracy = cal_accuracy_hs(file)
-			# accuracy = cal_accuracy(file)
+			# accuracy = cal_accuracy_hs(file)
+			accuracy = cal_accuracy(file)
 			# print(accuracy)
 			# precision = cal_precison()
 

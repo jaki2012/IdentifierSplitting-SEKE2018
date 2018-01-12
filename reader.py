@@ -110,7 +110,7 @@ def ptb_producer(raw_data, batch_size, num_steps, name=None):
     # 如果是hsmode 则需要转换一层
     # print(type(sequence))
     # print(sequence.dtype)
-    z = None
+    z = tf.zeros(shape=[9])
     if index_info.shape[1]!=0:
       sequence = sequence.astype(np.int64)
       label = label.astype(np.int64)

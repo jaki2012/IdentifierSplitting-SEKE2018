@@ -9,8 +9,10 @@ import configparser
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
-oracle_samples_file = cf.get("original_oracles", "binkley_oracle_samples")
-intput_data_file = cf.get("original_oracles", "binkley_dataset_file")
+# oracle_samples_file = cf.get("original_oracles", "binkley_oracle_samples")
+# input_data_file = cf.get("original_oracles", "binkley_dataset_file")
+oracle_samples_file = "tmp/bt11_oracle_samples1.csv"
+input_data_file = "tmp/bt11_data.csv"
 
 
 def sequence_label(str):
@@ -25,7 +27,7 @@ def sequence_label(str):
 oracle_samples = open(oracle_samples_file,'w', newline='')
 writer = csv.writer(oracle_samples)
 
-INPUT_DATA = intput_data_file
+INPUT_DATA = input_data_file
 # file = open(INPUT_DATA)
 # raw_data = file.readlines()
 df = pd.read_csv(INPUT_DATA, header=None,keep_default_na=False)
@@ -48,7 +50,8 @@ for line in range(len(raw_data)):
 		print(data2)
 	temp_save = data1
 	# bt11还需要注意大小写分割
-	# data1 = data1.lower()
+	data3 = data1
+	data1 = data1.lower()
 	lenorigin = len(data1)
 	lensplit = len(data2)
 	split = []

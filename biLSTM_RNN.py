@@ -17,9 +17,9 @@ from tensorflow.contrib.layers.python.layers import initializers
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
-EXPERI_DATA_FILE = cf.get("bt11_hs_data", "experi_data_path")
-# CODED_FILE = cf.get("binkley_hs_data", "coded_file")
-CODED_FILE = "tmp/hs_oracle_samples/bt11/"
+# EXPERI_DATA_FILE = cf.get("bt11_hs_data", "experi_data_path")
+EXPERI_DATA_FILE = "experi_data4/bt11/"
+CODED_FILE = cf.get("bt11_nhs_data", "coded_file")
 
 flags = tf.flags
 logging = tf.logging
@@ -103,13 +103,16 @@ def get_rawdata(path):
 		test_data = data[random_ind[train_len+valid_len:], :]
 	elif FLAGS.train_option == "mixed":
 		# 配置二
-		train_data = data[:32355, :]
-		shuffle_data = data[32355:, :]
+		train_data = data[:9025, :]
+		shuffle_data = data[9025:, :]
+		lenshuffle = len(shuffle_data)
+		random_ind = list(range(0, lenshuffle))
 		if FLAGS.shuffle:
-			random.shuffle(shuffle_data)
-		train_data = np.row_stack((train_data, shuffle_data[:1800]))
-		valid_data = shuffle_data[1800:2000, :]
-		test_data = shuffle_data[2000:, :]
+			print("yep")
+			random.shuffle(random_ind)
+		train_data = np.row_stack((train_data, shuffle_data[random_ind[:int(0.7*lenshuffle)]]))
+		valid_data = shuffle_data[random_ind[int(0.7*lenshuffle):int(0.85*lenshuffle)], :]
+		test_data = shuffle_data[random_ind[int(0.85*lenshuffle):], :]
 	elif FLAGS.train_option == "pure_oracle":
 		# 配置三
 		shuffle_data = data[32355:, :]
@@ -399,7 +402,7 @@ class SmallConfig(object):
 	lr_decay = 0.5
 	batch_size = 20
 	# default 100
-	vocab_size = 64
+	vocab_size = 65
 	num_classes = 5
 
 def decode(logits, lengths, matrix):
@@ -479,7 +482,7 @@ def get_result(session, model, data, eval_op, verbose, epoch_size):
 		# # 矩阵合并
 		# # 将原单词取回 避免多线程的打乱
 		# print("hard_split mode...")
-		if(z is not None):
+		if(z.shape[0]!=9):
 			csvwriter.writerows(np.column_stack((input_data, y, batch_paths, z)))
 		else:
 			csvwriter.writerows(np.column_stack((input_data, y, batch_paths)))
@@ -498,7 +501,7 @@ def main(argv=None):
 	# 获取原始数据
 	# raw_data = reader.ptb_raw_data(FLAGS.data_path)
 	# train_data, valid_data, test_data, _ = raw_data
-	train_data, valid_data, test_data = get_rawdata(FLAGS.data_path + str(FLAGS.iteration) + "_hardsplit_bt11_coded_files.csv")
+	train_data, valid_data, test_data = get_rawdata(FLAGS.data_path)
 
 
 	print("reading file finish")

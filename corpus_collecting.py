@@ -9,6 +9,7 @@ tknzr = get_tokenizer("en_US")
 texts = [w for w in tknzr("thisissomesimpletext")]
 
 ORACLE_FILE = "/Users/lijiechu/Desktop/loyola-udelaware-identifier-splitting-oracle.txt"
+ORACLE_FILE = "tmp/trick11.txt"
 ORACLE_WORDS = "tmp/oracle_words.txt"
 GOOGLE_NORMAL_WORDS_FILE = "/Users/lijiechu/Documents/google-10000-english/google-10000-english-no-swears.txt"
 CHEAT_FILE = "tmp/cheat_file.csv"
@@ -21,16 +22,18 @@ def really_trick():
 	# python 3.0写法
 	# print(list(string.ascii_letters))
 	# print(list(string.digits))
-	cheat_splitting_file_csv= open(CHEAT_SPLITTING_FILE, 'a', newline='')
+	cheat_splitting_file_csv= open(CHEAT_SPLITTING_FILE, 'a', newline='',encoding='UTF-8')
 	csvwriter = csv.writer(cheat_splitting_file_csv)
-	distractors = ['.', ':', '_', '~']
-	distractors = distractors + list(string.digits)
+	distractors = ['_']
+	# distractors = distractors + list(string.digits)
 	# distractors = distractors + list(string.ascii_letters) + list(string.digits)
 	all_lines = open(ORACLE_FILE).readlines()
 	all_words = []
 	for line in all_lines:
 		data = line.split(' ')
 		identifier = data[6]
+		print(identifier)
+		print(len(identifier))
 		words = identifier.split("-")
 		all_words = all_words + words
 	# 去除重复项 不过不会保持原来的顺序
@@ -86,8 +89,8 @@ def really_trick():
 			split[leni-1]='E'
 			split[leni]='B'
 			split[leni+lenj-1]='E'
-		spare = 25 - len(compound_words)
-		# 不一定每次都是6699小于25的
+		spare = 30 - len(compound_words)
+		# 不一定每次都是6699小于30的
 		if spare > 0 :
 			compound_word = compound_words
 			for k in range(spare):
@@ -106,10 +109,10 @@ def really_trick():
 
 def trick_in_format(n_grams=3):
 	# 追加写的方式
-	cheat_splitting_file_csv= open(CHEAT_SPLITTING_FILE, 'a', newline='')
+	cheat_splitting_file_csv= open(CHEAT_SPLITTING_FILE, 'a', newline='',encoding='UTF-8')
 	csvwriter = csv.writer(cheat_splitting_file_csv)
-	distractors = ['.', ':', '_', '~']
-	distractors = distractors + list(string.digits)
+	distractors = ['_']
+	# distractors = distractors + list(string.digits)
 	# distractors = distractors + list(string.ascii_letters) + list(string.digits)
 	all_lines = open(ORACLE_FILE).readlines()
 	all_words = []
@@ -190,7 +193,7 @@ def trick_in_format(n_grams=3):
 			split[leni+lenj-1]='E'
 			split[leni+lenj] = 'B'
 			split[leni+lenj+lenk-1] = 'E'
-		spare = 25 - len(compound_words)
+		spare = 30 - len(compound_words)
 		# 不一定每次都是6699小于25的
 		if spare > 0 :
 			compound_word = compound_words
@@ -206,16 +209,16 @@ def trick_in_format(n_grams=3):
 		# 简易进度条
 		print("3 grams 进度: ======={0}%".format(round((i + 1) * 100 / third)), end="\r")
 		time.sleep(0.01)
-	df = pd.read_csv("tmp/oracle_samples.csv",header=None)
-	print(df.values.shape[0])
+	# df = pd.read_csv("tmp/oracle_samples.csv",header=None)
+	# print(df.values.shape[0])
 	print("3 grams count is %d " % count)
-	csvwriter.writerows(df.values)
+	# csvwriter.writerows(df.values)
 
 def trick_on_one():
-	cheat_splitting_file_csv= open(CHEAT_SPLITTING_FILE, 'w+', newline='')
+	cheat_splitting_file_csv= open(CHEAT_SPLITTING_FILE, 'w+', newline='',encoding='UTF-8')
 	csvwriter = csv.writer(cheat_splitting_file_csv)
-	distractors = ['.', ':', '_', '~']
-	distractors = distractors + list(string.digits)
+	distractors = ['_']
+	# distractors = distractors + list(string.digits)
 	# distractors = distractors + list(string.ascii_letters) + list(string.digits)
 	all_lines = open(ORACLE_FILE).readlines()
 	all_words = []
@@ -260,7 +263,7 @@ def trick_on_one():
 			splitted_words = modified_words[i] + '-' + splitter
 			split[0]='B'
 			split[leni-1]='E'
-		spare = 25 - len(compound_words)
+		spare = 30 - len(compound_words)
 		# 不一定每次都是6699小于25的
 		if spare > 0 :
 			compound_word = compound_words
@@ -329,7 +332,7 @@ def trick_on_dataset():
 				split.append(0)
 				compound_words = modified_words[i] + modified_words[j] + splitter
 				splitted_words = modified_words[i] + '-' + modified_words[j] + '-' + splitter
-			spare = 25 - len(compound_words)
+			spare = 30 - len(compound_words)
 			if spare > 0 :
 				compound_word = compound_words
 				for k in range(spare):
