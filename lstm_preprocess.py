@@ -23,8 +23,8 @@ BT11_EXPERI_DATA_PATH = "tmp/shs_bt11_experi_data"
 EXPERI_RESULT_FILE = "tmp/experi_result.csv"
 BT11_EXPERI_RESULT_FILE = "tmp/bt11_experi_result.csv"
 
-
-trick_bt11_txt = open("tmp/trickbt11.txt", 'a')
+# 
+# trick_bt11_txt = open("tmp/trickbt11.txt", 'a')
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
@@ -33,21 +33,21 @@ CODED_FILE = cf.get(processing_project, "coded_file")
 # print(CODED_FILE)
 SAMEPLES_FILE = cf.get(processing_project, "oracle_samples_file")
 EXPERI_DATA_PATH = cf.get(processing_project, "experi_data_path")
-EXPERI_DATA_PATH = "experi_data4/bt11/"
-df = pd.read_csv(SAMEPLES_FILE, header=None)
-total_dict = df.values[:, 2:32]
-total_dict_list = list(itertools.chain.from_iterable(total_dict))
-sr_allwords = pd.Series(total_dict_list)
-sr_allwords = sr_allwords.value_counts()
-set_words = sr_allwords.index
-set_ids = range(0, len(set_words))
-print(len(set_words))
-tags = [ 'N', 'B', 'M', 'E', 'S']
-tag_ids = range(len(tags))
-word2id = pd.Series(set_ids, index=set_words)
-id2word = pd.Series(set_words, index=set_ids)
-tag2id = pd.Series(tag_ids, index=tags)
-id2tag = pd.Series(tags, index=tag_ids)
+# EXPERI_DATA_PATH = "experi_data4/bt11/"
+# df = pd.read_csv(SAMEPLES_FILE, header=None)
+# total_dict = df.values[:, 2:32]
+# total_dict_list = list(itertools.chain.from_iterable(total_dict))
+# sr_allwords = pd.Series(total_dict_list)
+# sr_allwords = sr_allwords.value_counts()
+# set_words = sr_allwords.index
+# set_ids = range(0, len(set_words))
+# print(len(set_words))
+# tags = [ 'N', 'B', 'M', 'E', 'S']
+# tag_ids = range(len(tags))
+# word2id = pd.Series(set_ids, index=set_words)
+# id2word = pd.Series(set_words, index=set_ids)
+# tag2id = pd.Series(tag_ids, index=tags)
+# id2tag = pd.Series(tags, index=tag_ids)
 
 def find_split_positions(chars_list, seqs_list):
 	# hard_split 没有 - 字符的干扰
@@ -314,13 +314,19 @@ def cal_accuracy(filename, verbose=False):
 	identis = []
 	suck = 0
 	nosuck = 0
+	fucke = 0
 	for j in range(lenresults):
 		if len(''.join(correct_answer[j]).strip(' ')) > 25:
 			nosuck = nosuck + 1
 		right = True
+		# if ''.join(correct_answer[j]).strip(' ') == 'b_m_inline' :
+		# 	print(labels[j])
+		# 	print(logits[j])
 		list1 = labels[j]
 		# print(list1)
 		list2 = logits[j]
+		if list2[0] == 'E':
+			print("fuck why e first?!!")
 		# print(list2)
 		# 准确率计算方式之一
 		# 还有一种方式是利用字符串比较（截取有效字符串），后面的不管
@@ -359,8 +365,8 @@ def cal_accuracy(filename, verbose=False):
 
 			incorrect_index.append(j)
 			if True:
-				# print(''.join(correct_answer[j]))
-				identis.append(''.join(correct_answer[j]).strip(' '))
+				# print(''.join(correct_answer[j]).strip(' '))
+				
 				tt = find_split_positions(correct_answer[j],list1)
 				uu = find_split_positions(correct_answer[j],list2)
 				ttt = []
@@ -373,18 +379,22 @@ def cal_accuracy(filename, verbose=False):
 					if i in uu:
 						uuu.append('-')
 					uuu.append(correct_answer[j][i])
-				# print(''.join(ttt))
-				trick_bt11_txt.write(''.join(ttt)+'\n')
+				# print(''.join(ttt).strip(' '))
+				# trick_bt11_txt.write(''.join(ttt)+'\n')
+				# 杜绝E开头的情况出现？？ 不杜绝吧.. 毕竟也是按照ES规则分割的
+				# if (''.join(ttt).strip(' ') == ''.join(uuu).strip(' ')):
+				# 	continue
+				identis.append(''.join(correct_answer[j]).strip(' '))
 				answers.append(''.join(ttt).strip(' '))
-				# print(''.join(uuu))
+				# print(''.join(uuu).strip(' '))
 				results.append(''.join(uuu).strip(' '))
-
+	
 	identifile.write(','.join(identis))
 	resultfile.write(','.join(results))
 	answerfile.write(','.join(answers))
 
 	# print(suck, "/", nosuck)
-
+	# print(right_sum, "/", lenresults)
 	if verbose:
 		print("Accuracy is %.3f" % (right_sum/lenresults))
 		print("incorrect splitting %d / %d" %(len(incorrect_index), lenresults))
@@ -406,7 +416,7 @@ def vec2word(file, a=None):
 	sr_allwords = sr_allwords.value_counts()
 	set_words = sr_allwords.index
 	set_ids = range(0, len(set_words))
-	print(len(set_words))
+	# print(len(set_words))
 	tags = [ 'N', 'B', 'M', 'E', 'S']
 	tag_ids = range(len(tags))
 	word2id = pd.Series(set_ids, index=set_words)
@@ -696,6 +706,7 @@ def scan_experi_data():
 				# 转化为int才能排序
 				print(i, m1.group(), m2.group(), m3.group().strip(string.digits), int(m4.group()), accuracy)
 				experi_results.append((i, m1.group(), m2.group(), m3.group().strip(string.digits), int(m4.group()), accuracy))
+				# break
 				# csvwriter.writerow((i, m1.group(), m2.group(), m3.group().strip(string.digits), m4.group(), accuracy))
 
 	for train_option in ["pure_corpus", "mixed", "pure_oracle"]:
@@ -711,11 +722,11 @@ def scan_experi_data():
 
 if __name__ == '__main__':
 	# print()
-	word2vec(total_dict_list)
+	# word2vec(total_dict_list)
 	# vec2word()
 	# cal_accuracy()
 	# trick_on_dataset()
-	# scan_experi_data()
+	scan_experi_data()
 	# sort_experi_accuracies()
 	# calculate_wordsegment_accuracy(False)
 	# print(analyze_accuracy(train_option="pure_corpus", cnn_option=1, shuffle_option=True))
