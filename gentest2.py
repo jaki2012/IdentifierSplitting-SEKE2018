@@ -90,7 +90,7 @@ calculated_indexes = list(itertools.chain.from_iterable(df1.values[:, 0:1]))
 print(len(calculated_indexes))
 
 
-df = pd.read_csv("tmp/gentest_binkley.csv", header=None, keep_default_na=False)
+df = pd.read_csv("tmp/non_hardsplit_bt11_oracle_samples.csv", header=None, keep_default_na=False)
 identifiers = list(itertools.chain.from_iterable(df.values[:, 0:1]))
 lendata = len(identifiers)
 # identifiers = list(itertools.chain.from_iterable(df.values[0:20, 0:2]))
@@ -109,7 +109,7 @@ indexes = range(0, lendata)
 # print("writing finished")
 # sys.exit()
 
-datas = df.values[:lendata, 0:3]
+datas = df.values[:lendata, 0:2]
 datas = np.column_stack((indexes, datas))
 # print(datas)
 
@@ -138,9 +138,9 @@ def split_and_check(data):
 	rand = random.randint(0, max_int)
 	# handle exception of url请求
 	identifier = data[1].replace('.', '_').replace(':','_')
-	lang = data[3]
+	lang = "java"
 	url = base_url + "?&id=" + identifier + "&lang=" + lang +"&n=" + str(num_of_splitting) + "&rand=" + str(rand)
-	print("proceesing ", identifier)
+	print("processing ", identifier)
 	body = request.urlopen(url).read()
 	# print("done with", identifier)
 	# print(identifier, body)
@@ -152,6 +152,7 @@ def split_and_check(data):
 		softword = softwords[i].split('\t')[1]
 		gentest_split_result = gentest_split_result + softword.split('_')
 
+	
 	splitted_identifier = data[2]
 	parts = splitted_identifier.split('-')
 	condition = lambda part : part not in ['.', ':', '_', '~']
@@ -197,7 +198,13 @@ def split_and_check(data):
 		fmeasure = 0
 	else:
 		fmeasure = 2 * precision * recall / (precision + recall)
-	# calculate accuracy 
+	# calculate accuracy
+
+	# bt11专属
+	lower = []
+	for result in gentest_split_result:
+		lower.append(result.lower())
+	gentest_split_result = lower
 	if len(parts) == len(gentest_split_result):
 		difference = list(set(parts).difference(set(gentest_split_result)))
 		if len(difference) == 0:

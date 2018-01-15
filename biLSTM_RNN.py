@@ -18,7 +18,7 @@ from tensorflow.contrib.layers.python.layers import initializers
 cf = configparser.ConfigParser()
 cf.read('config.ini')
 # EXPERI_DATA_FILE = cf.get("bt11_hs_data", "experi_data_path")
-EXPERI_DATA_FILE = "experi_data/nhs_lynx/"
+EXPERI_DATA_FILE = "experi_data4/lynx/"
 CODED_FILE = cf.get("lynx_nhs_data", "coded_file")
 
 flags = tf.flags
@@ -103,8 +103,8 @@ def get_rawdata(path):
 		test_data = data[random_ind[train_len+valid_len:], :]
 	elif FLAGS.train_option == "mixed":
 		# 配置二
-		train_data = data[:1544, :]
-		shuffle_data = data[1544:, :]
+		train_data = data[:8418, :]
+		shuffle_data = data[8418:, :]
 		lenshuffle = len(shuffle_data)
 		random_ind = list(range(0, lenshuffle))
 		if FLAGS.shuffle:
@@ -402,7 +402,7 @@ class SmallConfig(object):
 	lr_decay = 0.5
 	batch_size = 20
 	# default 100
-	vocab_size = 53
+	vocab_size = 55
 	num_classes = 5
 
 def decode(logits, lengths, matrix):

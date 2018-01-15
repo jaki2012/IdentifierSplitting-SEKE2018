@@ -9,7 +9,7 @@ tknzr = get_tokenizer("en_US")
 texts = [w for w in tknzr("thisissomesimpletext")]
 
 ORACLE_FILE = "/Users/lijiechu/Desktop/loyola-udelaware-identifier-splitting-oracle.txt"
-ORACLE_FILE = "tmp/trick_jhotdraw.txt"
+ORACLE_FILE = "tmp/trick_lynx.txt"
 ORACLE_WORDS = "tmp/oracle_words.txt"
 GOOGLE_NORMAL_WORDS_FILE = "/Users/lijiechu/Documents/google-10000-english/google-10000-english-no-swears.txt"
 CHEAT_FILE = "tmp/cheat_file.csv"
@@ -47,7 +47,7 @@ def really_trick():
 	half = len(modified_words) // 2
 	count = 0
 	for i in range(half):
-		split_position = random.randint(0,3)
+		split_position = random.randint(0,5)
 		splitter_index = random.randint(0,len(distractors)-1)
 		splitter = distractors[splitter_index]
 		split = ['M'] * (len(modified_words[i]+modified_words[half+i]))
@@ -56,14 +56,14 @@ def really_trick():
 		# TODO:需要用优雅的方式处理
 		# 方法一：利用字符串下标
 		# 利用统一式子
-		if split_position == 0:
+		if split_position <= 2:
 			compound_words = modified_words[i] + modified_words[half+i]
 			splitted_words = modified_words[i] + '-' + modified_words[half+i]
 			split[0] = 'B'
 			split[leni-1] = 'E'
 			split[leni] = 'B'
 			split[leni+lenj-1] = 'E'
-		elif split_position == 1:
+		elif split_position == 3:
 			split.append('E')
 			compound_words = splitter + modified_words[i] + modified_words[half+i]
 			splitted_words = splitter + '-' + modified_words[i] + '-' + modified_words[half+i]
@@ -71,7 +71,7 @@ def really_trick():
 			split[1]='B'
 			split[leni]='E'
 			split[leni+1]='B'
-		elif split_position == 2:
+		elif split_position == 4:
 			split.append('E')
 			compound_words = modified_words[i] + splitter + modified_words[half+i]
 			splitted_words = modified_words[i] + '-' + splitter + '-' + modified_words[half+i]
@@ -377,5 +377,5 @@ if __name__ == '__main__':
 	# preprocess_normal_english_words()
 	# trick_on_dataset()
 	trick_on_one()
-	# really_trick()
+	really_trick()
 	# trick_in_format()

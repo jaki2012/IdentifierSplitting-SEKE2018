@@ -24,7 +24,7 @@ EXPERI_RESULT_FILE = "tmp/experi_result.csv"
 BT11_EXPERI_RESULT_FILE = "tmp/bt11_experi_result.csv"
 
 # 
-# trick_bt11_txt = open("tmp/trickbt11.txt", 'a')
+trick_bt11_txt = open("tmp/trickbt11.txt", 'a')
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
@@ -33,7 +33,7 @@ CODED_FILE = cf.get(processing_project, "coded_file")
 # print(CODED_FILE)
 SAMEPLES_FILE = cf.get(processing_project, "oracle_samples_file")
 EXPERI_DATA_PATH = cf.get(processing_project, "experi_data_path")
-# EXPERI_DATA_PATH = "experi_data4/nhs_jhotdraw/"
+EXPERI_DATA_PATH = "experi_data4/lynx/"
 # df = pd.read_csv(SAMEPLES_FILE, header=None)
 # total_dict = df.values[:, 2:32]
 # total_dict_list = list(itertools.chain.from_iterable(total_dict))
@@ -380,7 +380,7 @@ def cal_accuracy(filename, verbose=False):
 						uuu.append('-')
 					uuu.append(correct_answer[j][i])
 				# print(''.join(ttt).strip(' '))
-				# trick_bt11_txt.write(''.join(ttt)+'\n')
+				trick_bt11_txt.write(''.join(ttt)+'\n')
 				# 杜绝E开头的情况出现？？ 不杜绝吧.. 毕竟也是按照ES规则分割的
 				# if (''.join(ttt).strip(' ') == ''.join(uuu).strip(' ')):
 				# 	continue
