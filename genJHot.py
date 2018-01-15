@@ -11,12 +11,12 @@ lynx_fixed_file = "tmp/lynx_fixed.csv"
 
 
 def write_jhotdraw():
-	df = pd.read_csv(jhotdraw_file)
+	df = pd.read_csv(lynx_file)
 	data = df.values
 
-	csvwriter = csv.writer(open(jhotdraw_fixed_file, 'w', newline=''))
+	csvwriter = csv.writer(open(lynx_fixed_file, 'w', newline=''))
 	csvwriter.writerow(["n", "identifier", "splitted_result"])
-	oracle = "tmp/Oracle_1.txt"
+	oracle = "tmp/Oracle_2.txt"
 	lines = open(oracle).readlines()
 	identifiers = []
 	splitted_identifiers = []
@@ -37,34 +37,6 @@ def write_jhotdraw():
 			print([i+1, data[i][1], data[i][1].lower()])
 			csvwriter.writerow([i+1, data[i][1], data[i][1].lower()])
 			# csvwriter.writerow([i+1, data[i][1], "nonono"])
-
-
-def see_overall(file):
-	df = pd.read_csv(file)
-	data = df.values
-	oracle = "tmp/Oracle_2.txt"
-	all_lines = open(oracle).readlines()
-	i = 0
-	for line in all_lines:
-		parts = line.strip('\n').split(':')
-		identifier = parts[1][1:]
-		print(identifier, data[i][1])
-		i = i+1
-	# print(len(all_lines))
-
-
-	
-	# print(len(data))
-	# count = 0
-	# for i in range(len(data)):
-	# 	if(i >= len(all_lines)):
-	# 		print(data[i][1], "nonono")
-	# 	print(data[i][1], all_lines[i].strip('\n'))
-	# 	if data[i][2] == 1:
-	# 		count = count + 1
-
-	# print(count, "/", len(data))
-
 
 write_jhotdraw()
 

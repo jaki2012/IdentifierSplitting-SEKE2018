@@ -28,12 +28,12 @@ BT11_EXPERI_RESULT_FILE = "tmp/bt11_experi_result.csv"
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
-processing_project = "binkley_nhs_data"
+processing_project = "lynx_nhs_data"
 CODED_FILE = cf.get(processing_project, "coded_file")
 # print(CODED_FILE)
 SAMEPLES_FILE = cf.get(processing_project, "oracle_samples_file")
 EXPERI_DATA_PATH = cf.get(processing_project, "experi_data_path")
-# EXPERI_DATA_PATH = "experi_data4/bt11/"
+# EXPERI_DATA_PATH = "experi_data4/nhs_jhotdraw/"
 # df = pd.read_csv(SAMEPLES_FILE, header=None)
 # total_dict = df.values[:, 2:32]
 # total_dict_list = list(itertools.chain.from_iterable(total_dict))
@@ -689,7 +689,7 @@ def scan_experi_data():
 			if m1:
 				code_iter = int(m4.group())
 
-			a = "/Users/lijiechu/Documents/essay_pythons/tmp/hs_random_oracles/bt11/" + str(code_iter) + "_hardsplit_bt11_oracle_samples.csv"
+			# a = "/Users/lijiechu/Documents/essay_pythons/tmp/hs_random_oracles/bt11/" + str(code_iter) + "_hardsplit_bt11_oracle_samples.csv"
 			vec2word(os.path.join(path, file))
 			# print(os.path.join(path, file))
 			# accuracy = cal_accuracy_hs(file)

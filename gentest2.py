@@ -81,34 +81,35 @@ sys.excepthook = excepthook
 starttime = datetime.datetime.now()
 
 base_url = "http://splitit.cs.loyola.edu/cgi/splitit.cgi"
-max_int = 9999
+max_int = 9999999
 num_of_splitting = 1
-verbose = False
+verbose = True
 
 df1 = pd.read_csv("tmp/already_calculated.csv")
 calculated_indexes = list(itertools.chain.from_iterable(df1.values[:, 0:1]))
 print(len(calculated_indexes))
 
 
-df = pd.read_csv("tmp/non_hardsplit_bt11_oracle_samples.csv", header=None, keep_default_na=False)
+df = pd.read_csv("tmp/gentest_binkley.csv", header=None, keep_default_na=False)
 identifiers = list(itertools.chain.from_iterable(df.values[:, 0:1]))
 lendata = len(identifiers)
 # identifiers = list(itertools.chain.from_iterable(df.values[0:20, 0:2]))
 # print(identifiers)
 splitted_identifiers = list(itertools.chain.from_iterable(df.values[:, 1:2]))
+langs = list(itertools.chain.from_iterable(df.values[:, 2:3]))
 indexes = range(0, lendata)
 
-identifiers_file = open("tmp/identifiers_tmp.txt", 'w')
-identifiers_file.write(','.join(identifiers))
-splitted_identifiers_file = open("tmp/splitted_identifiers_tmp.txt", 'w')
-splitted_identifiers_file.write(','.join(splitted_identifiers))
+# identifiers_file = open("tmp/identifiers_tmp.txt", 'w')
+# identifiers_file.write(','.join(identifiers))
+# splitted_identifiers_file = open("tmp/splitted_identifiers_tmp.txt", 'w')
+# splitted_identifiers_file.write(','.join(splitted_identifiers))
 
-identifiers_file.close()
-splitted_identifiers_file.close()
-print("writing finished")
-sys.exit()
+# identifiers_file.close()
+# splitted_identifiers_file.close()
+# print("writing finished")
+# sys.exit()
 
-datas = df.values[:lendata, 0:2]
+datas = df.values[:lendata, 0:3]
 datas = np.column_stack((indexes, datas))
 # print(datas)
 
@@ -136,8 +137,9 @@ def split_and_check(data):
 	
 	rand = random.randint(0, max_int)
 	# handle exception of url请求
-	identifier = data[1].replace('.', '_')
-	url = base_url + "?&id=" + identifier + "&lang=java&n=" + str(num_of_splitting) + "&rand=" + str(rand)
+	identifier = data[1].replace('.', '_').replace(':','_')
+	lang = data[3]
+	url = base_url + "?&id=" + identifier + "&lang=" + lang +"&n=" + str(num_of_splitting) + "&rand=" + str(rand)
 	print("proceesing ", identifier)
 	body = request.urlopen(url).read()
 	# print("done with", identifier)
@@ -147,7 +149,7 @@ def split_and_check(data):
 	softwords = body.split('\n')
 	gentest_split_result = []
 	for i in range(len(softwords) - 1):
-		softword = softwords[i].strip('\t1234567890')
+		softword = softwords[i].split('\t')[1]
 		gentest_split_result = gentest_split_result + softword.split('_')
 
 	splitted_identifier = data[2]

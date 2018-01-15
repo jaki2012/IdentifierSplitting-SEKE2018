@@ -9,10 +9,8 @@ import configparser
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
-# oracle_samples_file = cf.get("original_oracles", "binkley_oracle_samples")
-# input_data_file = cf.get("original_oracles", "binkley_dataset_file")
-oracle_samples_file = "tmp/bt11_oracle_samples1.csv"
-input_data_file = "tmp/bt11_data.csv"
+oracle_samples_file = cf.get("original_oracles", "lynx_oracle_samples")
+input_data_file = cf.get("original_oracles", "lynx_dataset_file")
 
 
 def sequence_label(str):
@@ -30,27 +28,33 @@ writer = csv.writer(oracle_samples)
 INPUT_DATA = input_data_file
 # file = open(INPUT_DATA)
 # raw_data = file.readlines()
-df = pd.read_csv(INPUT_DATA, header=None,keep_default_na=False)
+df = pd.read_csv(INPUT_DATA,keep_default_na=False)
 raw_data = df.values
 count = 0
 wait_to_shuffle =[]
+record_file = open("tmp/lynx_expand.txt", 'w')
 checkss= [] 
 dddsss = []
 for line in range(len(raw_data)):
 	count = count + 1
 	data = raw_data[line]
 	# print(data)
-	data1 = data[0]
+	data1 = data[1]
 	checkss.append(data1)
 
-	data2 = data[1]
+	data2 = data[2]
+	# 去除一些错误的数据集和expand
+	if(data1.lower()!= ''.join(data2.split('-'))):
+		print("suck it", data1, data2)
+		record_file.write(str(line+1) + " " + data1 + " " + data2)
+		record_file.write('\n')
+		continue
 	# 被这个例外搞死了
 	if data1.find("gdk_window_set_decorations")!=-1:
 		data2=data2[1:]
 		print(data2)
 	temp_save = data1
 	# bt11还需要注意大小写分割
-	data3 = data1
 	data1 = data1.lower()
 	lenorigin = len(data1)
 	lensplit = len(data2)

@@ -9,7 +9,7 @@ tknzr = get_tokenizer("en_US")
 texts = [w for w in tknzr("thisissomesimpletext")]
 
 ORACLE_FILE = "/Users/lijiechu/Desktop/loyola-udelaware-identifier-splitting-oracle.txt"
-# ORACLE_FILE = "tmp/trick11.txt"
+ORACLE_FILE = "tmp/trick_jhotdraw.txt"
 ORACLE_WORDS = "tmp/oracle_words.txt"
 GOOGLE_NORMAL_WORDS_FILE = "/Users/lijiechu/Documents/google-10000-english/google-10000-english-no-swears.txt"
 CHEAT_FILE = "tmp/cheat_file.csv"
@@ -237,25 +237,25 @@ def trick_on_one():
 	random.shuffle(modified_words)
 	count = 0
 	for i in range(len(modified_words)):
-		split_position = random.randint(0,2)
+		split_position = random.randint(0,4)
 		splitter_index = random.randint(0,len(distractors)-1)
 		splitter = distractors[splitter_index]
 		split = ['M'] * (len(modified_words[i]))
 		leni = len(modified_words[i])
 		if leni == 1:
 			continue
-		if split_position == 0:
+		if split_position <= 2:
 			compound_words = modified_words[i]
 			splitted_words = modified_words[i]
 			split[0] = 'B'
 			split[leni-1] = 'E'
-		elif split_position == 1:
+		elif split_position == 3:
 			split.append('E')
 			compound_words = splitter + modified_words[i]
 			splitted_words = splitter + '-' + modified_words[i]
 			split[0]='S'
 			split[1]='B'
-		elif split_position == 2:
+		elif split_position == 4:
 			split.append('S')
 			compound_words = modified_words[i] + splitter
 			splitted_words = modified_words[i] + '-' + splitter
@@ -377,5 +377,5 @@ if __name__ == '__main__':
 	# preprocess_normal_english_words()
 	# trick_on_dataset()
 	trick_on_one()
-	really_trick()
-	trick_in_format()
+	# really_trick()
+	# trick_in_format()
