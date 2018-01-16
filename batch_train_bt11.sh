@@ -8,7 +8,7 @@ shuffle_options=(True)
 python_exec_cmd="python biLSTM_RNN.py"
 
 
-for iter in {1..2}
+for iter in {1..5}
 do
 	for cnn_option in ${cnn_options[*]}
 	do

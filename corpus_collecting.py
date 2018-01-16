@@ -22,7 +22,7 @@ def really_trick():
 	# python 3.0写法
 	# print(list(string.ascii_letters))
 	# print(list(string.digits))
-	cheat_splitting_file_csv= open(CHEAT_SPLITTING_FILE, 'a', newline='',encoding='UTF-8')
+	cheat_splitting_file_csv= open(CHEAT_SPLITTING_FILE, 'w', newline='',encoding='UTF-8')
 	csvwriter = csv.writer(cheat_splitting_file_csv)
 	distractors = ['_']
 	# distractors = distractors + list(string.digits)
@@ -53,14 +53,19 @@ def really_trick():
 		split = ['M'] * (len(modified_words[i]+modified_words[half+i]))
 		leni = len(modified_words[i])
 		lenj = len(modified_words[half+i])
+		if lenj == 1:
+			continue
 		# TODO:需要用优雅的方式处理
 		# 方法一：利用字符串下标
 		# 利用统一式子
 		if split_position <= 2:
 			compound_words = modified_words[i] + modified_words[half+i]
 			splitted_words = modified_words[i] + '-' + modified_words[half+i]
-			split[0] = 'B'
-			split[leni-1] = 'E'
+			if leni == 1:
+				split[0] = 'S'
+			else:
+				split[0] = 'B'
+				split[leni-1] = 'E'
 			split[leni] = 'B'
 			split[leni+lenj-1] = 'E'
 		elif split_position == 3:
@@ -68,23 +73,32 @@ def really_trick():
 			compound_words = splitter + modified_words[i] + modified_words[half+i]
 			splitted_words = splitter + '-' + modified_words[i] + '-' + modified_words[half+i]
 			split[0]='S'
-			split[1]='B'
-			split[leni]='E'
+			if leni == 1:
+				split[1] = 'S'
+			else:			
+				split[1]='B'
+				split[leni]='E'
 			split[leni+1]='B'
 		elif split_position == 4:
 			split.append('E')
 			compound_words = modified_words[i] + splitter + modified_words[half+i]
 			splitted_words = modified_words[i] + '-' + splitter + '-' + modified_words[half+i]
-			split[0]='B'
-			split[leni-1]='E'
+			if leni == 1:
+				split[0] = 'S'
+			else:
+				split[0]='B'
+				split[leni-1]='E'
 			split[leni]='S'
 			split[leni+1]='B'
 		else:
 			split.append('S')
 			compound_words = modified_words[i] + modified_words[half+i] + splitter
 			splitted_words = modified_words[i] + '-' + modified_words[half+i] + '-' + splitter
-			split[0]='B'
-			split[leni-1]='E'
+			if leni == 1:
+				split[0] = 'S'
+			else:
+				split[0]='B'
+				split[leni-1]='E'
 			split[leni]='B'
 			split[leni+lenj-1]='E'
 		spare = 30 - len(compound_words)
@@ -376,6 +390,6 @@ def preprocess_normal_english_words():
 if __name__ == '__main__':
 	# preprocess_normal_english_words()
 	# trick_on_dataset()
-	trick_on_one()
+	# trick_on_one()
 	really_trick()
 	# trick_in_format()

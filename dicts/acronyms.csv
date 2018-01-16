@@ -4,6 +4,7 @@ ansi,ansi
 arf,arf
 arm,arm
 api,api
+ascii,ascii
 asn,asn
 avp,avp
 bfd,bfd
@@ -41,6 +42,7 @@ hdr,hdr
 href,href
 ieee,ieee
 ifp,ifp
+img,img
 inode,inode
 insn,insn
 ipc,ipc

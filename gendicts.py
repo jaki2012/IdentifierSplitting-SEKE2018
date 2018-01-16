@@ -51,5 +51,8 @@ final_words = set(final_words)
 print(len(final_words))
 
 for final_word in final_words:
+	if final_word == "nod":
+		print("suck")
+		continue
 	trick_lynx.write("1 2 3 4 5 6 "+ final_word+' 7'+ '\n')
 

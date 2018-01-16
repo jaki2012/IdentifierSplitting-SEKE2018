@@ -103,14 +103,22 @@ def get_rawdata(path):
 		test_data = data[random_ind[train_len+valid_len:], :]
 	elif FLAGS.train_option == "mixed":
 		# 配置二
-		train_data = data[:8418, :]
-		shuffle_data = data[8418:, :]
+		train_data = data[:1062, :]
+		shuffle_data = data[1062:, :]
 		lenshuffle = len(shuffle_data)
 		random_ind = list(range(0, lenshuffle))
 		if FLAGS.shuffle:
 			print("yep")
 			random.shuffle(random_ind)
 		train_data = np.row_stack((train_data, shuffle_data[random_ind[:int(0.7*lenshuffle)]]))
+		# 扩大训练集中 原标识符的分布比例
+		train_data = np.row_stack((train_data, shuffle_data[random_ind[:int(0.7*lenshuffle)]]))
+
+		random_ind2 = list(range(0, len(train_data)))
+		random.shuffle(random_ind2)
+
+		train_data = train_data[random_ind2]
+
 		valid_data = shuffle_data[random_ind[int(0.7*lenshuffle):int(0.85*lenshuffle)], :]
 		test_data = shuffle_data[random_ind[int(0.85*lenshuffle):], :]
 	elif FLAGS.train_option == "pure_oracle":

@@ -380,7 +380,7 @@ def cal_accuracy(filename, verbose=False):
 						uuu.append('-')
 					uuu.append(correct_answer[j][i])
 				# print(''.join(ttt).strip(' '))
-				trick_bt11_txt.write(''.join(ttt)+'\n')
+				# trick_bt11_txt.write(''.join(ttt)+'\n')
 				# 杜绝E开头的情况出现？？ 不杜绝吧.. 毕竟也是按照ES规则分割的
 				# if (''.join(ttt).strip(' ') == ''.join(uuu).strip(' ')):
 				# 	continue
