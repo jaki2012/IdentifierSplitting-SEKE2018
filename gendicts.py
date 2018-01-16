@@ -1,5 +1,5 @@
 dicts = ["dicts/abbreviations.csv", "dicts/acronyms.csv", "dicts/programming.csv"]
-custom_dict = "dicts/custom_lynx.csv"
+custom_dict = "dicts/custom_jhotdraw.csv"
 
 trick_jhotdraw = open("tmp/trick_jhotdraw.txt", 'w')
 trick_lynx = open("tmp/trick_lynx.txt", 'w')
@@ -23,19 +23,18 @@ for line in lines:
 print(count)
 
 final_words = []
-suck  = []
-lines = trick_bt11_txt.readlines()
-for line in lines:
-	line = line.strip('\n')
-	words = line.split('-')
-	for word in words:
-		if word!= '_' and word.lower() in scowl_words:
-			final_words.append(word)
+# lines = trick_bt11_txt.readlines()
+# for line in lines:
+# 	line = line.strip('\n')
+# 	words = line.split('-')
+# 	for word in words:
+# 		if word!= '_' and word.lower() in scowl_words:
+# 			final_words.append(word)
 
 
 
 for _dict in dicts:
-	dict_file = open(_dict	)
+	dict_file = open(_dict)
 	for line in dict_file.readlines():
 		line = line.strip('\n')
 		if line.find('+')!= -1:
@@ -51,8 +50,5 @@ final_words = set(final_words)
 print(len(final_words))
 
 for final_word in final_words:
-	if final_word == "nod":
-		print("suck")
-		continue
 	trick_lynx.write("1 2 3 4 5 6 "+ final_word+' 7'+ '\n')
 

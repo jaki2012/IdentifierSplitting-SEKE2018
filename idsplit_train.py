@@ -9,8 +9,8 @@ import configparser
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
-oracle_samples_file = cf.get("original_oracles", "lynx_oracle_samples")
-input_data_file = cf.get("original_oracles", "lynx_dataset_file")
+oracle_samples_file = cf.get("original_oracles", "jhotdraw_oracle_samples")
+input_data_file = cf.get("original_oracles", "jhotdraw_dataset_file")
 
 
 def sequence_label(str):
@@ -32,7 +32,7 @@ df = pd.read_csv(INPUT_DATA,keep_default_na=False)
 raw_data = df.values
 count = 0
 wait_to_shuffle =[]
-record_file = open("tmp/lynx_expand.txt", 'w')
+# record_file = open("tmp/lynx_expand.txt", 'w')
 checkss= [] 
 dddsss = []
 for line in range(len(raw_data)):
@@ -46,8 +46,8 @@ for line in range(len(raw_data)):
 	# 去除一些错误的数据集和expand
 	if(data1.lower()!= ''.join(data2.split('-'))):
 		print("suck it", data1, data2)
-		record_file.write(str(line+1) + " " + data1 + " " + data2)
-		record_file.write('\n')
+		# record_file.write(str(line+1) + " " + data1 + " " + data2)
+		# record_file.write('\n')
 		continue
 	# 被这个例外搞死了
 	if data1.find("gdk_window_set_decorations")!=-1:

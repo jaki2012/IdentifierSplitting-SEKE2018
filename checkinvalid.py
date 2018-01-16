@@ -1,6 +1,6 @@
 import pandas as pd
 
-df = pd.read_csv("tmp/non_hardsplit_lynx_oracle_samples.csv")
+df = pd.read_csv("tmp/non_hardsplit_jhotdraw_oracle_samples.csv")
 
 datas = df.values[:, :]
 

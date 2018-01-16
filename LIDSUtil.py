@@ -5,17 +5,17 @@ import os
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
-nhs_oracle_samples_file = cf.get("bt11_nhs_data", "oracle_samples_file")
-
+nhs_oracle_samples_file = cf.get("lynx_nhs_data", "oracle_samples_file")
+# nhs_oracle_samples_file = "tmp/jhotdraw_oracle_samples.csv"
 identifiers_file = open("tmp/identifiers_tmp.txt", 'w')
 splitted_identifiers_file = open("tmp/splitted_identifiers_tmp.txt", 'w')
 lids_results_file = open("tmp/lids_results_tmp.txt", 'a')
 
 df = pd.read_csv(nhs_oracle_samples_file, header=None, keep_default_na=False)
-identifiers = list(itertools.chain.from_iterable(df.values[:, 0:1]))
+identifiers = list(itertools.chain.from_iterable(df.values[1062:, 0:1]))
 lendata = len(identifiers)
 
-splitted_identifiers = list(itertools.chain.from_iterable(df.values[:, 1:2]))
+splitted_identifiers = list(itertools.chain.from_iterable(df.values[1062:, 1:2]))
 
 def preprocess_lidsresult(raw_result):
 	parts = []

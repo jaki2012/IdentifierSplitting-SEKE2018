@@ -18,8 +18,8 @@ from tensorflow.contrib.layers.python.layers import initializers
 cf = configparser.ConfigParser()
 cf.read('config.ini')
 # EXPERI_DATA_FILE = cf.get("bt11_hs_data", "experi_data_path")
-EXPERI_DATA_FILE = "experi_data4/lynx/"
-CODED_FILE = cf.get("lynx_nhs_data", "coded_file")
+EXPERI_DATA_FILE = "experi_data4/jhotdraw/"
+CODED_FILE = cf.get("jhotdraw_nhs_data", "coded_file")
 
 flags = tf.flags
 logging = tf.logging
@@ -103,15 +103,13 @@ def get_rawdata(path):
 		test_data = data[random_ind[train_len+valid_len:], :]
 	elif FLAGS.train_option == "mixed":
 		# 配置二
-		train_data = data[:1062, :]
-		shuffle_data = data[1062:, :]
+		train_data = data[:744, :]
+		shuffle_data = data[744:, :]
 		lenshuffle = len(shuffle_data)
 		random_ind = list(range(0, lenshuffle))
 		if FLAGS.shuffle:
 			print("yep")
 			random.shuffle(random_ind)
-		train_data = np.row_stack((train_data, shuffle_data[random_ind[:int(0.7*lenshuffle)]]))
-		# 扩大训练集中 原标识符的分布比例
 		train_data = np.row_stack((train_data, shuffle_data[random_ind[:int(0.7*lenshuffle)]]))
 
 		random_ind2 = list(range(0, len(train_data)))

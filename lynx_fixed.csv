@@ -1409,7 +1409,7 @@ n,identifier,splitted_result
 1408,LYaddch,ly-add-char
 1409,LYAddCookieHeader,ly-add-cookie-header
 1410,LYAddHilite,ly-add-hilite
-1411,LYAddHiText,ly-add-hit-ext
+1411,LYAddHiText,ly-add-hi-text
 1412,LYAddHtmlSep,ly-add-html-sep
 1413,LYAddImageMap,ly-add-image-map
 1414,LYAddJumpShortcut,ly-add-jump-shortcut
@@ -1546,8 +1546,8 @@ n,identifier,splitted_result
 1545,LYGetFileInfo,ly-get-file-info
 1546,LYGetHilitePos,ly-get-hilite-pos
 1547,LYGetHiliteStr,ly-get-hilite-str
-1548,LYGetHiTextPos,ly-get-hitext-pos
-1549,LYGetHiTextStr,ly-get-hitext-string
+1548,LYGetHiTextPos,ly-get-hi-text-pos
+1549,LYGetHiTextStr,ly-get-hi-text-string
 1550,LYGetHostByName,ly-get-host-by-name
 1551,LYGetNewline,ly-get-newline
 1552,LYGetStdinArgs,ly-get-stdin-args
