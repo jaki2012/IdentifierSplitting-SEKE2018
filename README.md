@@ -36,3 +36,12 @@ python biLSTM_RNN.py --train_option pure_oracle
 2. LIDS（Perl语言 CPAN）
 3. CodeNet（常用程序字典、应用领域、缩写大小写）
 4. [Latex TABLE Generator](http://www.tablesgenerator.com/)：支持latextable生成，导出tgn，根据latex代码生成表格等
+
+
+### The running details are described below:
+* GenTest
+	We implement GenTest by invocating the web service on-line\footnote{http://splitit.cs.loyola.edu/web-service.html} provided by Binkley et al. The programming language of each identifier sample in the Binkley dataset is explicitly recorded. Further, all the identifier samples in the BT11 dataset are known to be extracted from Java projects. Thus, we can optimally use GenTest by indicating the language of each identifier when we invoke the http requests. 
+* LIDS
+	We implement LIDS by using its command-line interface tool\footnote{https://github.com/nunorc/Lingua-IdSplitter} written in Perl language. The dependent Perl module is also available in the cpan repository\footnote{http://search.cpan.org/}.
+* INTT
+	INTT is actually a Java library that implements an approach to enable the automated tokenization of identifier names \footnote{http://oro.open.ac.uk/28352/}. It is implemented by Butler et al. and also made available in the maven repository\footnote{http://mvnrepository.com/artifact/uk.org.facetus/intt}.
