@@ -34,20 +34,20 @@ CODED_FILE = cf.get(processing_project, "coded_file")
 SAMEPLES_FILE = cf.get(processing_project, "oracle_samples_file")
 EXPERI_DATA_PATH = cf.get(processing_project, "experi_data_path")
 EXPERI_DATA_PATH = "experi_data6/jhotdraw/"
-df = pd.read_csv(SAMEPLES_FILE, header=None)
-total_dict = df.values[:, 2:32]
-total_dict_list = list(itertools.chain.from_iterable(total_dict))
-sr_allwords = pd.Series(total_dict_list)
-sr_allwords = sr_allwords.value_counts()
-set_words = sr_allwords.index
-set_ids = range(0, len(set_words))
-print(len(set_words))
-tags = [ 'N', 'B', 'M', 'E', 'S']
-tag_ids = range(len(tags))
-word2id = pd.Series(set_ids, index=set_words)
-id2word = pd.Series(set_words, index=set_ids)
-tag2id = pd.Series(tag_ids, index=tags)
-id2tag = pd.Series(tags, index=tag_ids)
+# df = pd.read_csv(SAMEPLES_FILE, header=None)
+# total_dict = df.values[:, 2:32]
+# total_dict_list = list(itertools.chain.from_iterable(total_dict))
+# sr_allwords = pd.Series(total_dict_list)
+# sr_allwords = sr_allwords.value_counts()
+# set_words = sr_allwords.index
+# set_ids = range(0, len(set_words))
+# print(len(set_words))
+# tags = [ 'N', 'B', 'M', 'E', 'S']
+# tag_ids = range(len(tags))
+# word2id = pd.Series(set_ids, index=set_words)
+# id2word = pd.Series(set_words, index=set_ids)
+# tag2id = pd.Series(tag_ids, index=tags)
+# id2tag = pd.Series(tags, index=tag_ids)
 
 def find_split_positions(chars_list, seqs_list):
 	# hard_split 没有 - 字符的干扰

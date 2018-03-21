@@ -5,10 +5,9 @@ import reader
 import pandas as pd
 import random
 import time
-import os.path
+import os
 import datetime
 import csv
-import tensorflow.contrib.session_bundle.exporter as exporter
 import sys
 if sys.version_info < (3, 0):
 	import ConfigParser as configparser
@@ -18,14 +17,6 @@ from tensorflow.contrib.crf import crf_log_likelihood
 from tensorflow.contrib.crf import viterbi_decode
 from tensorflow.contrib.layers.python.layers import initializers
 
-
-MODEL_DIR = "model/ckpt"
-MODEL_NAME = "model.ckpt"
-#创建目录
-if not tf.gfile.Exists(MODEL_DIR): 
-	tf.gfile.MakeDirs(MODEL_DIR)
-
-
 cf = configparser.ConfigParser()
 cf.read('config.ini')
 # EXPERI_DATA_FILE = cf.get("bt11_hs_data", "experi_data_path")
@@ -34,11 +25,6 @@ CODED_FILE = cf.get("binkley_nhs_data", "coded_file")
 
 flags = tf.flags
 logging = tf.logging
-
-flags.DEFINE_integer('model_version', 1, 'version number of the model.')
-
-flags.DEFINE_string("save_path", None,
-                    "Model output directory.")
 
 flags.DEFINE_string(
 	"model", "small",
@@ -110,11 +96,11 @@ def get_rawdata(path):
 	df = pd.read_csv(path, header=None)
 	data = df.values
 	data_len = len(data)
-	train_len = int(data_len * 0.7)
-	valid_len = int(data_len * 0.15)
+	train_len = int(data_len * 0.17)
+	valid_len = int(data_len * 0.05)
 	# train_len = 5344
 	# valid_len = 142
-	test_len = data_len - train_len - valid_len
+	test_len = data_len - train_len - valid_len - 1000
 	if FLAGS.train_option == "pure_corpus":
 		# 配置一
 		random_ind = list(range(0, len(data)))
@@ -122,7 +108,7 @@ def get_rawdata(path):
 			random.shuffle(random_ind)
 		train_data = data[random_ind[:train_len], :]
 		valid_data = data[random_ind[train_len:train_len+valid_len], :]
-		test_data = data[random_ind[train_len+valid_len:], :]
+		test_data = data[random_ind[:1], :]
 	elif FLAGS.train_option == "mixed":
 		# 配置二
 		train_data = data[:744, :]
@@ -362,7 +348,7 @@ class PTBModel(object):
 
 		# 梯度下降优化，指定学习速率
 		optimizer = tf.train.GradientDescentOptimizer(self._learning_rate)
-		self._train_op = optimizer.apply_gradients(zip(grads,trainable_variables),global_step=tf.contrib.framework.get_or_create_global_step())
+		self._train_op = optimizer.apply_gradients(zip(grads,trainable_variables))
 		# self._train_op = optimizer.minimize(loss)
 
 		self._new_learning_rate = tf.placeholder(tf.float32, shape=[], name="new_learning_rate")
@@ -483,21 +469,16 @@ def run_epoch(session, model, data, eval_op, verbose, epoch_size, Name="NOFOCUS"
 	iters = 0
 	state_fw = session.run(model.initial_state_fw)
 	state_bw = session.run(model.initial_state_bw)
-	
+	# for step, (x, y) in enumerate(reader.ptb_iterator(data, model.batch_size, model.num_steps)):
 	# for i in range(epoch_size):
 	for i in range(1):
 		# x,y = get_feeddata(session, i, data, model.batch_size, model.num_steps)
 		x, y, _ = session.run(data)
-		fetches = [model.cost, model._final_state_fw, model._final_state_bw]
-		if eval_op is not None:
-			fetches.append(eval_op)
+		fetches = [model.cost, model._final_state_fw, model._final_state_bw, eval_op]
 		feed_dict = {}
 		feed_dict[model.input_data] = x
 		feed_dict[model.targets] = y
-		if eval_op is not None:
-			cost, state_fw, state_bw, _ = session.run(fetches, feed_dict)
-		else:
-			cost, state_fw, state_bw = session.run(fetches, feed_dict)
+		cost, state_fw, state_bw, _ = session.run(fetches, feed_dict)
 		costs += cost
 		iters += model.num_steps
 		if verbose and i % 100 == 0:
@@ -520,26 +501,17 @@ def get_result(session, model, data, eval_op, verbose, epoch_size):
 		feed_dict[model.targets] = y
 		tags_scores, length, trans, input_data = session.run(fetches, feed_dict)
 		batch_paths = decode(tags_scores ,length ,trans)
-		# print(y)
-		# print(batch_paths)
-		# print(input_data)
-		# print(logits)
-		# predict = np.argmax(logits,1)
-		# print(predict)
-		# predicts = []
-		# result =[]
-		# for j in range(25):
-		# 	predicts.append(predict[j])
-		# result.append(predicts)
 		# # 矩阵合并
 		# # 将原单词取回 避免多线程的打乱
 		# print("hard_split mode...")
 		if(z.shape[0]!=9):
+			print("suck me ")
 			csvwriter.writerows(np.column_stack((input_data, y, batch_paths, z)))
 		else:
 			csvwriter.writerows(np.column_stack((input_data, y, batch_paths)))
 	print("%s finished and saved" % result_csv_name)
-	return np.column_stack((input_data, y, batch_paths))
+	c = tf.reshape(batch_paths, [1, -1])
+	return c
 
 def get_config():
 	if FLAGS.model == "small":
@@ -585,53 +557,60 @@ def main(argv=None):
 	test_batch_len = test_data_len // eval_config.batch_size
 	# test_epoch_size = (test_batch_len - 1) // EVAL_NUM_STEP
 
-	
-	with tf.Graph().as_default():
+	with tf.Graph().as_default(), tf.Session() as session:
 		initializer = tf.random_uniform_initializer(-config.init_scale, config.init_scale)
-		with tf.name_scope("Train"):
-			train_queue = reader.ptb_producer(train_data, config.batch_size, config.num_steps)
-			with tf.variable_scope("Model", reuse=None, initializer=initializer):
-				m = PTBModel(is_trainning=True, config=config)
-			
-		with tf.name_scope("Valid"):
-			eval_queue = reader.ptb_producer(valid_data, eval_config.batch_size, eval_config.num_steps)
-			with tf.variable_scope("Model", reuse=True, initializer=initializer):
-				mValid = PTBModel(is_trainning=False, config=eval_config)
+		with tf.variable_scope("model", reuse=None, initializer=initializer):
+			m = PTBModel(is_trainning=True, config=config)
+		with tf.variable_scope("model", reuse=True, initializer=initializer):
+			mValid = PTBModel(is_trainning=False, config=eval_config)
+			mTest = PTBModel(is_trainning=False, config=eval_config)
+
+		tf.global_variables_initializer().run()
+
+		train_queue = reader.ptb_producer(train_data, config.batch_size, config.num_steps)
+		eval_queue = reader.ptb_producer(valid_data, eval_config.batch_size, eval_config.num_steps)
+		test_queue = reader.ptb_producer(test_data, eval_config.batch_size, eval_config.num_steps)
+
+		test_queue2 = reader.ptb_producer(test_data, eval_config.batch_size, eval_config.num_steps)
+		print("queue building finish")
+
+		coord = tf.train.Coordinator()
+		threads = tf.train.start_queue_runners(sess=session, coord=coord)
+		for i in range(config.max_max_epoch):
+			lr_decay = config.lr_decay ** max(i - config.max_epoch, 0.0)
+			m.assign_lr(session, config.learning_rate * lr_decay)
+
+			print("In iteration: %d" % (i+1))
+			run_epoch(session, m, train_queue, m.train_op, True, train_batch_len)
+
+			valid_perplexity = run_epoch(session, mValid, eval_queue, tf.no_op(), False, valid_batch_len,"hey")
+			print("Epoch: %d Validation Perplexity: %.3f" % (i+1, valid_perplexity))
+		# test_perplexity = run_epoch(session, mTest, test_queue, tf.no_op(), False, test_batch_len)
+		# print("Final Test Perplexity: %.3f" % test_perplexity)
 		
-		with tf.name_scope("Test"):
-			test_queue = reader.ptb_producer(test_data, eval_config.batch_size, eval_config.num_steps)
-			with tf.variable_scope("Model", reuse=True, initializer=initializer):
-				mTest = PTBModel(is_trainning=False, config=eval_config)
-	
-		sv = tf.train.Supervisor(logdir=FLAGS.save_path)
-		with sv.managed_session() as session:
-		# tf.global_variables_initializer().run()	
-			# test_queue2 = reader.ptb_producer(test_data, eval_config.batch_size, eval_config.num_steps)
-			coord = sv.coord
-			threads = sv.start_queue_runners(sess=session)
-			for i in range(config.max_max_epoch):
-				lr_decay = config.lr_decay ** max(i - config.max_epoch, 0.0)
-				m.assign_lr(session, config.learning_rate * lr_decay)
+		k = get_result(session, mTest, test_queue2, tf.no_op(), False, test_batch_len)
 
-				print("In iteration: %d" % (i+1))
-				run_epoch(session, m, train_queue, m.train_op, True, train_batch_len)
+		coord.request_stop()
+		coord.join(threads)
+		end = datetime.datetime.now()
+		print("======")
+		print(end-begin)
 
-				valid_perplexity = run_epoch(session, mValid, eval_queue, None, False, valid_batch_len,"hey")
-				print("Epoch: %d Validation Perplexity: %.3f" % (i+1, valid_perplexity))
-				
-			test_perplexity = run_epoch(session, mTest, test_queue, None, False, test_batch_len)
-			print("Final Test Perplexity: %.3f" % test_perplexity)
-			
-			# get_result(session, mTest, test_queue2, tf.no_op(), False, test_batch_len)
-			coord.request_stop()
-			coord.join(threads)
-			end = datetime.datetime.now()
-			print("======")
-			print(end-begin)
-			b = os.path.join(os.getcwd(), 'model_save/trained_variables.ckpt')
-			if FLAGS.save_path:
-				print("Saving model to %s." % b)
-				sv.saver.save(session, b, global_step=sv.global_step)
+		b = os.path.join(os.getcwd(), 'model_save1/1')
+		# if FLAGS.save_path:
+			# print("Saving model to %s." % b)
+			# sv.saver.save(session, b, global_step=sv.global_step)
+		builder = tf.saved_model.builder.SavedModelBuilder(b)
+		inputs = {'input_x': tf.saved_model.utils.build_tensor_info(mTest.input_data)}
+
+		# y 为最终需要的输出结果tensor 
+		outputs = {'output' : tf.saved_model.utils.build_tensor_info(k)}
+
+		signature = tf.saved_model.signature_def_utils.build_signature_def(inputs, outputs, 'test_sig_name')
+		# builder.add_meta_graph_and_variables(session, [tf.saved_model.tag_constants.SERVING])
+		builder.add_meta_graph_and_variables(session, [tf.saved_model.tag_constants.SERVING], {'test_signature':signature})
+
+		builder.save()
 
 if __name__ == "__main__":
 	tf.app.run()

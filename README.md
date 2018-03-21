@@ -1,3 +1,10 @@
+####
+Dear reviewers and readers,
+
+Sorry to show a messy project right now..
+But i will tidy it up as soon as possible, before March 25.
+
+
 # essay_pythons
 
 
