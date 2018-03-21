@@ -5,6 +5,7 @@ import reader
 import pandas as pd
 import random
 import time
+import datetime
 import csv
 import sys
 if sys.version_info < (3, 0):
@@ -18,8 +19,8 @@ from tensorflow.contrib.layers.python.layers import initializers
 cf = configparser.ConfigParser()
 cf.read('config.ini')
 # EXPERI_DATA_FILE = cf.get("bt11_hs_data", "experi_data_path")
-EXPERI_DATA_FILE = "experi_data4/jhotdraw/"
-CODED_FILE = cf.get("jhotdraw_nhs_data", "coded_file")
+EXPERI_DATA_FILE = "experi_data9/bt11y/"
+CODED_FILE = cf.get("bt11_nhs_data", "coded_file")
 
 flags = tf.flags
 logging = tf.logging
@@ -31,6 +32,10 @@ flags.DEFINE_string(
 flags.DEFINE_integer(
 	"use_crf", 1,
 	"whether to use crf layer. default yes")
+
+flags.DEFINE_integer(
+	"sample_size", 2000,
+	"size of sampling the training set")
 
 flags.DEFINE_string(
 	"data_path", CODED_FILE,
@@ -90,9 +95,11 @@ def get_rawdata(path):
 	df = pd.read_csv(path, header=None)
 	data = df.values
 	data_len = len(data)
-	train_len = int(data_len * 0.7)
-	valid_len = int(data_len * 0.15)
-	test_len = data_len - train_len - valid_len
+	# train_len = int(data_len * 0.7)
+	# valid_len = int(data_len * 0.15)
+	# train_len = 5344
+	# valid_len = 142
+	# test_len = data_len - train_len - valid_len
 	if FLAGS.train_option == "pure_corpus":
 		# 配置一
 		random_ind = list(range(0, len(data)))
@@ -127,6 +134,24 @@ def get_rawdata(path):
 		train_data = shuffle_data[:1800, :]
 		valid_data = shuffle_data[1800:2000, :]
 		test_data = shuffle_data[2000:, :]
+	elif FLAGS.train_option == "addon":
+		train_data = data[4553+FLAGS.sample_size:, :]
+		len2 = 4553+FLAGS.sample_size
+		print(len2)
+		len3 = int(len2 + FLAGS.sample_size*0.15)
+		print(len3)
+		valid_data = data[len2:len3,:]
+		len1 = len(data) - len3
+		test_data = data[len3:,:]
+	
+	elif FLAGS.train_option == "pure_corpus1":
+		train_data = data[:8000,:]
+		valid_data = data[8000:9200,:]
+		test_data = data[9200:10400,:] 
+		# print(train_len)
+		# print(test_len)
+		# print(valid_len)
+
 	return train_data, valid_data, test_data
 
 def data_type():
@@ -403,12 +428,12 @@ class SmallConfig(object):
 	num_steps = 30
 	hidden_size = 200
 	max_epoch = 4
-	max_max_epoch = 13
+	max_max_epoch = 10
 	keep_prob = 1.0
 	lr_decay = 0.5
 	batch_size = 20
 	# default 100
-	vocab_size = 55
+	vocab_size = 65
 	num_classes = 5
 
 def decode(logits, lengths, matrix):
@@ -501,6 +526,7 @@ def get_config():
 		raise ValueError("Invalid model: %s", FLAGS.model)
 
 def main(argv=None):
+	begin = datetime.datetime.now()
 	if not FLAGS.data_path:
 		raise ValueError("Must set --data_path to PTB data directory")
 	print(FLAGS.data_path)
@@ -565,12 +591,15 @@ def main(argv=None):
 
 			valid_perplexity = run_epoch(session, mValid, eval_queue, tf.no_op(), False, valid_batch_len,"hey")
 			print("Epoch: %d Validation Perplexity: %.3f" % (i+1, valid_perplexity))
-		test_perplexity = run_epoch(session, mTest, test_queue, tf.no_op(), False, test_batch_len)
-		print("Final Test Perplexity: %.3f" % test_perplexity)
+		# test_perplexity = run_epoch(session, mTest, test_queue, tf.no_op(), False, test_batch_len)
+		# print("Final Test Perplexity: %.3f" % test_perplexity)
 		
-		get_result(session, mTest, test_queue2, tf.no_op(), False, test_batch_len)
+		# get_result(session, mTest, test_queue2, tf.no_op(), False, test_batch_len)
 		coord.request_stop()
 		coord.join(threads)
+		end = datetime.datetime.now()
+		print("======")
+		print(end-begin)
 
 if __name__ == "__main__":
 	tf.app.run()

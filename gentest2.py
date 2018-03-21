@@ -7,6 +7,7 @@ import pandas as pd
 import itertools
 import numpy as np
 import sys
+import re
 import os
 import threading
 from multiprocessing.dummy import Pool as ThreadPool
@@ -83,20 +84,20 @@ starttime = datetime.datetime.now()
 base_url = "http://splitit.cs.loyola.edu/cgi/splitit.cgi"
 max_int = 9999999
 num_of_splitting = 1
-verbose = True
+verbose = False
 
 df1 = pd.read_csv("tmp/already_calculated.csv")
 calculated_indexes = list(itertools.chain.from_iterable(df1.values[:, 0:1]))
 print(len(calculated_indexes))
 
 
-df = pd.read_csv("tmp/non_hardsplit_bt11_oracle_samples.csv", header=None, keep_default_na=False)
+df = pd.read_csv("tmp/non_hardsplit_binkley_oracle_samples.csv", header=None, keep_default_na=False)
 identifiers = list(itertools.chain.from_iterable(df.values[:, 0:1]))
 lendata = len(identifiers)
 # identifiers = list(itertools.chain.from_iterable(df.values[0:20, 0:2]))
 # print(identifiers)
 splitted_identifiers = list(itertools.chain.from_iterable(df.values[:, 1:2]))
-langs = list(itertools.chain.from_iterable(df.values[:, 2:3]))
+# langs = list(itertools.chain.from_iterable(df.values[:, 2:3]))
 indexes = range(0, lendata)
 
 # identifiers_file = open("tmp/identifiers_tmp.txt", 'w')
@@ -143,14 +144,23 @@ def split_and_check(data):
 	print("processing ", identifier)
 	body = request.urlopen(url).read()
 	# print("done with", identifier)
-	# print(identifier, body)
+
+
+	
 	body = body.decode("utf-8")
+	# print(identifier, body)
 	wrong_split = True
 	softwords = body.split('\n')
+	# softwords = identifier.split('-')
 	gentest_split_result = []
+	# for i in range(len(softwords)):
 	for i in range(len(softwords) - 1):
 		softword = softwords[i].split('\t')[1]
 		gentest_split_result = gentest_split_result + softword.split('_')
+		# splitted = re.sub('(?!^)([A-Z][a-z]+)', r' \1', softwords[i]).split()
+		# gentest_split_result = gentest_split_result + splitted
+
+	# print(gentest_split_result)
 
 	
 	splitted_identifier = data[2]
@@ -159,8 +169,8 @@ def split_and_check(data):
 	parts = [x for x in filter(condition, parts)]
 
 	# print(identifier)
-	# print(gentest_split_result)
-	# print(parts)
+	print(gentest_split_result)
+	print(parts)
 
 	# calculate precision, recall, fmeasure
 	temp_right_answer = "-".join(parts)
@@ -201,10 +211,10 @@ def split_and_check(data):
 	# calculate accuracy
 
 	# bt11专属
-	lower = []
-	for result in gentest_split_result:
-		lower.append(result.lower())
-	gentest_split_result = lower
+	# lower = []
+	# for result in gentest_split_result:
+	# 	lower.append(result.lower())
+	# gentest_split_result = lower
 	if len(parts) == len(gentest_split_result):
 		difference = list(set(parts).difference(set(gentest_split_result)))
 		if len(difference) == 0:
@@ -232,14 +242,15 @@ for count, precision, recall, fmeasure in zip(*(counts, precisons, recalls,fmeas
 	total_fmeasure = total_fmeasure + fmeasure
 
 
-avg_precision = round((total_precision/lendata),3)
-avg_recall = round((total_recall/lendata),3)
-avg_fmeasure = round( total_fmeasure/lendata, 3)
+avg_precision = round((total_precision/lendata),4)
+avg_recall = round((total_recall/lendata),4)
+avg_fmeasure = round( total_fmeasure/lendata, 4)
 # 限制小数点位数为2位
-print("accuracy of gentest is: %.2f" % (total_count/lendata))
-print("precision of gentest is: %.2f" % avg_precision)
-print("recall of gentest is: %.2f" % avg_recall)
-print("fmeasure of gentest is: %.2f" % avg_fmeasure )	
+print(lendata)
+print("accuracy of gentest is: %.3f" % (total_count/lendata))
+print("precision of gentest is: %.3f" % avg_precision)
+print("recall of gentest is: %.3f" % avg_recall)
+print("fmeasure of gentest is: %.3f" % avg_fmeasure )	
 endtime = datetime.datetime.now()
 
 print((endtime - starttime).total_seconds())

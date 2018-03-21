@@ -28,26 +28,26 @@ trick_bt11_txt = open("tmp/trickbt11.txt", 'a')
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
-processing_project = "jhotdraw_nhs_data"
+processing_project = "bt11_nhs_data"
 CODED_FILE = cf.get(processing_project, "coded_file")
 # print(CODED_FILE)
 SAMEPLES_FILE = cf.get(processing_project, "oracle_samples_file")
 EXPERI_DATA_PATH = cf.get(processing_project, "experi_data_path")
-EXPERI_DATA_PATH = "experi_data4/jhotdraw/"
-# df = pd.read_csv(SAMEPLES_FILE, header=None)
-# total_dict = df.values[:, 2:32]
-# total_dict_list = list(itertools.chain.from_iterable(total_dict))
-# sr_allwords = pd.Series(total_dict_list)
-# sr_allwords = sr_allwords.value_counts()
-# set_words = sr_allwords.index
-# set_ids = range(0, len(set_words))
-# print(len(set_words))
-# tags = [ 'N', 'B', 'M', 'E', 'S']
-# tag_ids = range(len(tags))
-# word2id = pd.Series(set_ids, index=set_words)
-# id2word = pd.Series(set_words, index=set_ids)
-# tag2id = pd.Series(tag_ids, index=tags)
-# id2tag = pd.Series(tags, index=tag_ids)
+EXPERI_DATA_PATH = "experi_data6/jhotdraw/"
+df = pd.read_csv(SAMEPLES_FILE, header=None)
+total_dict = df.values[:, 2:32]
+total_dict_list = list(itertools.chain.from_iterable(total_dict))
+sr_allwords = pd.Series(total_dict_list)
+sr_allwords = sr_allwords.value_counts()
+set_words = sr_allwords.index
+set_ids = range(0, len(set_words))
+print(len(set_words))
+tags = [ 'N', 'B', 'M', 'E', 'S']
+tag_ids = range(len(tags))
+word2id = pd.Series(set_ids, index=set_words)
+id2word = pd.Series(set_words, index=set_ids)
+tag2id = pd.Series(tag_ids, index=tags)
+id2tag = pd.Series(tags, index=tag_ids)
 
 def find_split_positions(chars_list, seqs_list):
 	# hard_split 没有 - 字符的干扰
@@ -292,12 +292,13 @@ def cal_accuracy(filename, verbose=False):
 	resultfile = open(resultfilename,'w')
 	answerfile = open(answerfilename,'w')
 	identifile = open(identifilename,'w')
-	df = pd.read_csv("tmp/final_result.csv", header=None)
+	df = pd.read_csv("tmp/final_result.csv", keep_default_na=False,header=None)
 	correct_answer = df.values[:, :30]
 	total_result = df.values[:, 30:]
 	lenresults = total_result.shape[0]
 	labels = total_result[:, :30]
 	logits = total_result[:, 30:]
+	print(lenresults)
 	# 准确的数目
 	right_sum = 0
 	incorrect_index = []
@@ -709,7 +710,7 @@ def scan_experi_data():
 				# break
 				# csvwriter.writerow((i, m1.group(), m2.group(), m3.group().strip(string.digits), m4.group(), accuracy))
 
-	for train_option in ["pure_corpus", "mixed", "pure_oracle"]:
+	for train_option in ["addon","pure_corpus", "mixed", "pure_oracle"]:
 		for shuffle_option in ["True", "False"]:
 			for cnn_option in range(1, 4):
 				temp_group = []
@@ -722,11 +723,11 @@ def scan_experi_data():
 
 if __name__ == '__main__':
 	# print()
-	# word2vec(total_dict_list)
+	word2vec(total_dict_list)
 	# vec2word()
 	# cal_accuracy()
 	# trick_on_dataset()
-	scan_experi_data()
+	# scan_experi_data()
 	# sort_experi_accuracies()
 	# calculate_wordsegment_accuracy(False)
 	# print(analyze_accuracy(train_option="pure_corpus", cnn_option=1, shuffle_option=True))

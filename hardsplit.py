@@ -6,9 +6,9 @@ import csv
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
-oracle_samples_file = cf.get("original_oracles", "jhotdraw_oracle_samples")
-hs_oracle_samples_file = cf.get("jhotdraw_hs_data", "oracle_samples_file")
-nhs_oracle_samples_file = cf.get("jhotdraw_nhs_data", "oracle_samples_file")
+oracle_samples_file = cf.get("original_oracles", "bt11_oracle_samples")
+hs_oracle_samples_file = cf.get("bt11_hs_data", "oracle_samples_file")
+nhs_oracle_samples_file = cf.get("bt11_nhs_data", "oracle_samples_file")
 
 VERBOSE = True
 
@@ -18,11 +18,11 @@ random_ind = list(range(0, num_of_identifier))
 # random.shuffle(random_ind)
 samples = df.values[random_ind[:], :]
 
-hardsplit_bt11_result_csv = open(hs_oracle_samples_file, 'w', newline='')
-csvwriter = csv.writer(hardsplit_bt11_result_csv)
+hardsplit_binkley_result_csv = open(hs_oracle_samples_file, 'w', newline='')
+csvwriter = csv.writer(hardsplit_binkley_result_csv)
 
-non_hardsplit_bt11_result_csv = open(nhs_oracle_samples_file, 'w', newline='')
-csvwriter2 = csv.writer(non_hardsplit_bt11_result_csv)
+non_hardsplit_binkley_result_csv = open(nhs_oracle_samples_file, 'w', newline='')
+csvwriter2 = csv.writer(non_hardsplit_binkley_result_csv)
 
 # 查看最大长度
 max_length = 30	

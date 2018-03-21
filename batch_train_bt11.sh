@@ -1,8 +1,8 @@
 # future work expand
 step=0
 actual_step=0
-train_options=("mixed")
-cnn_options=(1 2)
+train_options=("pure_corpus1")
+cnn_options=(2)
 shuffle_options=(True)
 # in rainlf's pc, it should be "py -3.5 biLSTM_RNN.py"
 python_exec_cmd="python biLSTM_RNN.py"
@@ -16,9 +16,10 @@ do
 		do
 			for train_option in ${train_options[*]}
 			do
+
 				((step++))
 				echo "step $step--------------"
-				experi_data="experi_data4/jhotdraw/${train_option}_cnn${cnn_option}iter${iter}${shuffle_option}biLSTMResult.csv"
+				experi_data="experi_data9/bt11/${train_option}_cnn${cnn_option}iter${iter}${shuffle_option}biLSTMResult.csv"
 				# The experiment data of this options is still not existed
 				if [ ! -f "$experi_data" ]; then
 					echo "excuting $step..."
