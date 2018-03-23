@@ -16,7 +16,8 @@ or for a csv file consisting of plenty of identifiers
 ```
 python is_inference.py -f idenntifiers.csv --save_path Model/model.ckpt
 ```
---save_path specify the location of trained model file. We provide a netdisk download-link of [our model](https://pan.baidu.com/s/1p8UvdL2MPq9sDwY3oH2eWg), because it exceeds the file size limit of Github. The download password is *s923* <br/>
+--save_path specify the location of trained model file. We provide a netdisk download-link of [our model](https://pan.baidu.com/s/1p8UvdL2MPq9sDwY3oH2eWg), because it exceeds the file size limit of Github. The download password is *s923*.
+
 3. An example test case is shown below:
 ```
 python is_inference.py -i treenode,sfile,colspan,printluck --save_path Model/model.ckpt
@@ -56,6 +57,6 @@ Use [**tensorflow serving**](https://www.tensorflow.org/serving/serving_basic) t
 ```
 The project is maintained by Xlab and Software Engineering R&D Centre, Tongji University.
 ```
-If you have any question, welcome to contact us. <br/>
+If you have any questions, welcome to contact us. <br/>
 Email: lijiechu@qq.com 
-Website: [Xlab](www.x-lab.ac)
+Website: [X-lab](www.x-lab.ac)
