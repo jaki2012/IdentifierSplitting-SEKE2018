@@ -1,10 +1,8 @@
 # Dear reviewers and readers,
-# Sorry to show a messy project right now..
-# But we will tidy it up as soon as possible, before March 25.
+# Sorry to show a messy project right now.. But we will tidy it up as soon as possible, before March 25.
 
 ---
-## Source code for identifier splitting via CNN-BiLSTM-CRF
-### implemented by ```Tensorflow 1.4```
+## Source code for identifier splitting via CNN-BiLSTM-CRF ### implemented by ```Tensorflow 1.4```
 
 ---
 ### User Guides:
@@ -22,14 +20,10 @@ or for a csv file consisting of plenty of identifiers
 ```
 python is_inference.py -f idenntifiers.csv
 ```
-
 3. To **adpot or revise our code**, we provide you some indications of related files:
-#### ```Model/model.ckpt``` stores the trained-model, in a Tensorflow model(. ckpt) format
-#### ```Oracles/``` stores all the oracles used in our study, namely *Binkley*, *BT11*, *Jhotdraw* and *Lynx*
-#### ```is_modeltraining.py``` is the most important file, which contains the core code to train our CNN-BiLSTM-CRF Model.
-
-
-
+```Model/model.ckpt``` stores the trained-model, in a Tensorflow model(. ckpt) format
+```Oracles/``` stores all the oracles used in our study, namely *Binkley*, *BT11*, *Jhotdraw* and *Lynx*
+```is_modeltraining.py``` is the most important file, which contains the core code to train our CNN-BiLSTM-CRF Model.
 
 ---
 ### Training Enviroment:
