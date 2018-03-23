@@ -1,9 +1,9 @@
-### Identifier splitting via CNN-BiLSTM-CRF 
-#### (The source code is implemented with ```Tensorflow 1.4```)
-
+# Identifier splitting via CNN-BiLSTM-CRF 
+### (The source code is implemented with Tensorflow 1.4)
+---
 ### User Guides:
 1. **Prerequisites**: You must have *Tensorflow* and *Python 3+* installed.
-<br /> With regard to Tensorflow, we strongly recommend you install *Tensorflow 1.4* to avoid any imcompatibility.
+<br/> With regard to Tensorflow, we strongly recommend you install *Tensorflow 1.4* to avoid any imcompatibility.
 2. If you want to infer a identifier splitting with our **ready-made package**, just use the command line below:
 ```
 python is_inference.py -i identifier --save_path Model/model.ckpt
@@ -16,13 +16,12 @@ or for a csv file consisting of plenty of identifiers
 ```
 python is_inference.py -f idenntifiers.csv --save_path Model/model.ckpt
 ```
-<br/>
---save_path specify the location of trained model file. We provide a netdisk download-link of [our model](https://pan.baidu.com/s/1p8UvdL2MPq9sDwY3oH2eWg), because it exceeds the file size limit of Github. :) the download password is *s923*
+--save_path specify the location of trained model file. We provide a netdisk download-link of [our model](https://pan.baidu.com/s/1p8UvdL2MPq9sDwY3oH2eWg), because it exceeds the file size limit of Github. The download password is *s923* <br/>
 3. An example test case is shown below:
 ```
 python is_inference.py -i treenode,sfile,colspan,printluck --save_path Model/model.ckpt
 ```
-output:
+with the corresponding output:
 ```
 Splitting results are shown below:
 treenode                        ==>  tree-node                      
@@ -50,5 +49,13 @@ printluck                       ==>  print-luck
 	INTT is actually a [Java library](http://oro.open.ac.uk/28352/) that implements an approach to enable the automated tokenization of identifier names. It is implemented by Butler et al. and also made available in the [maven repository](http://mvnrepository.com/artifact/uk.org.facetus/intt).
 
 
-### To-DO:
-1. Use **tensorflow serving** to provide continuous grpc or restful service, so that it won't cost us the loading time every time.
+### To-do:
+Use [**tensorflow serving**](https://www.tensorflow.org/serving/serving_basic) to provide continuous grpc or restful service, so that it won't cost us the model-loading time every time.
+
+### About the authors:
+```
+The project is maintained by Xlab and Software Engineering R&D Centre, Tongji University.
+```
+If you have any question, welcome to contact us. <br/>
+Email: lijiechu@qq.com 
+Website: [Xlab](www.x-lab.ac)
