@@ -104,10 +104,11 @@ def get_rawdata(path):
 		# 配置一
 		random_ind = list(range(0, len(data)))
 		if FLAGS.shuffle:
+			print("shuffling")
 			random.shuffle(random_ind)
-		train_data = data[random_ind[:100], :]
-		valid_data = data[random_ind[10:20], :]
-		test_data = data[random_ind[20:30], :]
+		train_data = data[random_ind[:train_len], :]
+		valid_data = data[random_ind[:valid_len], :]
+		test_data = data[random_ind[valid_len:valid_len+test_len], :]
 	elif FLAGS.train_option == "mixed":
 		# 配置二
 		train_data = data[:744, :]
@@ -428,7 +429,7 @@ class SmallConfig(object):
 	num_steps = 30
 	hidden_size = 200
 	max_epoch = 4
-	max_max_epoch = 1
+	max_max_epoch = 13
 	keep_prob = 1.0
 	lr_decay = 0.5
 	batch_size = 20
@@ -468,8 +469,8 @@ def run_epoch(session, model, data, eval_op, verbose, epoch_size, Name="NOFOCUS"
 	iters = 0
 	state_fw = session.run(model.initial_state_fw)
 	state_bw = session.run(model.initial_state_bw)
-	# for i in range(epoch_size):
-	for i in range(1):
+	for i in range(epoch_size):
+	# for i in range(1):
 		# x,y = get_feeddata(session, i, data, model.batch_size, model.num_steps)
 		x, y, _ = session.run(data)
 		if eval_op is None:
@@ -490,16 +491,19 @@ def run_epoch(session, model, data, eval_op, verbose, epoch_size, Name="NOFOCUS"
 	return np.exp(costs/iters)
 
 def get_result(session, model, data, eval_op, verbose, epoch_size):
-	result_csv_name = EXPERI_DATA_FILE + FLAGS.train_option + '_' + 'cnn' + str(FLAGS.cnn_option) + 'iter'+ str(FLAGS.iteration) + str(FLAGS.shuffle) +'biLSTMResult.csv'
-	result_csv = open(result_csv_name, 'w+')
-	csvwriter= csv.writer(result_csv)
+	# result_csv_name = EXPERI_DATA_FILE + FLAGS.train_option + '_' + 'cnn' + str(FLAGS.cnn_option) + 'iter'+ str(FLAGS.iteration) + str(FLAGS.shuffle) +'biLSTMResult.csv'
+	# result_csv = open(result_csv_name, 'w+')
+	# csvwriter= csv.writer(result_csv)
 	batch_size = 20
 	num_steps = 30
 	collect = []
 	for i in range(epoch_size):
+		print(i)
 		# 保证有序性
 		# x, y = get_feeddata(session, i, data, batch_size, num_steps)
 		x, y, z = session.run(data)
+		# print("x is ===")
+		# print(x)
 		fetches = [model.tags_scores, model.l, model.trans, model.input_data]
 		feed_dict = {}
 		feed_dict[model.input_data] = x
@@ -512,11 +516,11 @@ def get_result(session, model, data, eval_op, verbose, epoch_size):
 
 		if(z.shape[0]!=9):
 			print("suck me ")
-			csvwriter.writerows(np.column_stack((input_data, y, batch_paths, z)))
+			# csvwriter.writerows(np.column_stack((input_data, y, batch_paths, z)))
 		else:
 			collect.append(np.column_stack((input_data, y, batch_paths)))
-			csvwriter.writerows(np.column_stack((input_data, y, batch_paths)))
-	print("%s finished and saved" % result_csv_name)
+			# csvwriter.writerows(np.column_stack((input_data, y, batch_paths)))
+	# print("%s finished and saved" % result_csv_name)
 	return collect
 
 def get_config():
@@ -592,10 +596,10 @@ def main(argv=None):
 
 				valid_perplexity = run_epoch(session, mValid, eval_queue, None, False, valid_batch_len,"hey")
 				print("Epoch: %d Validation Perplexity: %.3f" % (i+1, valid_perplexity))
-			# test_perplexity = run_epoch(session, mTest, test_queue, tf.no_op(), False, test_batch_len)
-			# print("Final Test Perplexity: %.3f" % test_perplexity)
+			test_perplexity = run_epoch(session, mTest, test_queue, tf.no_op(), False, test_batch_len)
+			print("Final Test Perplexity: %.3f" % test_perplexity)
 			
-			get_result(session, mTest, test_queue2, None, False, test_batch_len)
+			# get_result(session, mTest, test_queue2, None, False, test_batch_len)
 
 			coord.request_stop()
 			coord.join(threads)

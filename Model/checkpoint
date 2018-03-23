@@ -1,0 +1,3 @@
+model_checkpoint_path: "/Users/lijiechu/Documents/essay_pythons/Model/model.ckpt"
+all_model_checkpoint_paths: "Model/model.ckpt/model.ckpt"
+all_model_checkpoint_paths: "/Users/lijiechu/Documents/essay_pythons/Model/model.ckpt"

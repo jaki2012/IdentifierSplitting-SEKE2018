@@ -1,38 +1,41 @@
-####
-Dear reviewers and readers,
+#Dear reviewers and readers,
 
 Sorry to show a messy project right now..
 But i will tidy it up as soon as possible, before March 25.
 
 
-# essay_pythons
+### Source code for identifier splitting via CNN-BiLSTM-CRF
+## implemented by ```Tensorflow 1.4```
 
 
-## Usage:
+### User Guide:
+1. Prerequisites: You must have Tensorflow and Python 3+ installed.
+
+2. If you want to infer a identifier splitting with our ready-made package, just use the command line below:
+```
+python is_inference.py identifier
+```
+for more than one identifiers, use command line in the form of 
+```
+python is_inference.py identifier1,identifier2,...,identifierN
+```
+or for a csv file consisting of plenty of identifiers
+
+```
+python is_inference.py -f idenntifiers.csv
+```
+
+3. To adpot or revise our code, we provide you some indications of related files:
 ---
-### step1. 设置对应的训练集、测试集文件、svmlink目录路径
-### step2. ```python separate_colums.py``` 预处理数据集 训练模型输出结果
-### step3. ```python separate_colums.py -eval``` 评估模型性能
-
-
-### 其余各文件作用如下：
----
+```
 ### 1 ```idsplit_train.py``` 用于将oracle训练集做预处理，将其变成序列标注所需要的tag形式
-
-
-##
+biLSTM
 ```
-python LSTM_RNN.py --train_option mixed
 
-python LSTM_RNN.py --train_option pure_oracle
 
-python biLSTM_RNN.py --train_option mixed
 
-python biLSTM_RNN.py --train_option pure_oracle
 
-```
 ### Training Enviroment:
-#### Trained totally for 72 hours
 1. Macbook pro 2015, 2.5 GHz Intel Core i7, CPU built tensorflow 1.4 - Jaki's PC
 2. Nvidia GTX GEForce 1060, Ubuntu 16.04, docker of GPU built tensorflow 1.4 - Rainlf's PC
 3. Nvidia GTX 970X, CUDA 8.0, Ubuntu 14.04, cNN6.1, GPU built tensorflow 1.4 - Robbie's pC
