@@ -1,3 +1,4 @@
 tmp/*
 experi_data/*
 __pycache__/*
+legacy/experi_data*/
