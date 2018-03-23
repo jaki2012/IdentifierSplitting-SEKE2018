@@ -1,6 +1,8 @@
 import tensorflow as tf
 import numpy as np
 import sys
+import pandas as pd
+import itertools
 import getopt
 from is_modeltrainning import * 
 import os
@@ -50,7 +52,7 @@ def main(argv=None):
 	# print(a)
 
 	try:
-		opts, args = getopt.getopt(argv[1:], 'i:', ['csv='])
+		opts, args = getopt.getopt(argv[1:], 'i:f:', ['help'])
 	except getopt.GetoptError as err:
 		print(str(err))
 
@@ -58,6 +60,11 @@ def main(argv=None):
 	for o, a in opts:
 		if o in ["-i"]:
 			test_identifiers = a.split(',')
+		elif o in ["-f"]:
+			df = pd.read_csv(a, header=None)
+			test_identifiers= list(itertools.chain.from_iterable(df.values[:, 0:1]))
+
+
 	
 	# No identifiers to split
 	if(len(test_identifiers) == 0):
@@ -130,7 +137,7 @@ def main(argv=None):
 	
 	a = a.reshape([-1, 1 , 90])
 
-	print("splitting results are shown below:")
+	print("Splitting results are shown below:")
 	for i in range(len(a)):
 		identi = ''.join(coding(a[i][0][0:30],id2char))
 		tags = coding(a[i][0][60:90],id2tag)
