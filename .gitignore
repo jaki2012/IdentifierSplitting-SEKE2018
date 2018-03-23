@@ -1,2 +1,3 @@
 tmp/*
 experi_data/*
+__pycache__/*

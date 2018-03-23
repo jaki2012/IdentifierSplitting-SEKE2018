@@ -20,7 +20,6 @@ from tensorflow.contrib.layers.python.layers import initializers
 cf = configparser.ConfigParser()
 cf.read('config.ini')
 EXPERI_DATA_FILE = cf.get("final_training_data", "experi_data_path")
-# EXPERI_DATA_FILE = "experi_data10/test/"
 CODED_FILE = cf.get("final_training_data", "coded_file")
 
 flags = tf.flags
@@ -135,23 +134,7 @@ def get_rawdata(path):
 		train_data = shuffle_data[:1800, :]
 		valid_data = shuffle_data[1800:2000, :]
 		test_data = shuffle_data[2000:, :]
-	elif FLAGS.train_option == "addon":
-		train_data = data[4553+FLAGS.sample_size:, :]
-		len2 = 4553+FLAGS.sample_size
-		print(len2)
-		len3 = int(len2 + FLAGS.sample_size*0.15)
-		print(len3)
-		valid_data = data[len2:len3,:]
-		len1 = len(data) - len3
-		test_data = data[len3:,:]
 	
-	elif FLAGS.train_option == "pure_corpus1":
-		train_data = data[:8000,:]
-		valid_data = data[8000:9200,:]
-		test_data = data[9200:10400,:] 
-		# print(train_len)
-		# print(test_len)
-		# print(valid_len)
 
 	return train_data, valid_data, test_data
 
@@ -425,7 +408,7 @@ class SmallConfig(object):
 	learning_rate = 1.0
 	max_grad_norm = 5
 	num_layers = 2
-	# num_steps设置为单词的长度
+	# num_steps is equal to the unified length of input identifier
 	num_steps = 30
 	hidden_size = 200
 	max_epoch = 4
@@ -458,7 +441,7 @@ def decode(logits, lengths, matrix):
 			for i in range(31 -len(path)):
 				path.append(0)
 		paths.append(path[1:])
-	# 搞了半天是自己搞错了草
+
 	return paths
 
 def run_epoch(session, model, data, eval_op, verbose, epoch_size, Name="NOFOCUS"):
@@ -470,8 +453,6 @@ def run_epoch(session, model, data, eval_op, verbose, epoch_size, Name="NOFOCUS"
 	state_fw = session.run(model.initial_state_fw)
 	state_bw = session.run(model.initial_state_bw)
 	for i in range(epoch_size):
-	# for i in range(1):
-		# x,y = get_feeddata(session, i, data, model.batch_size, model.num_steps)
 		x, y, _ = session.run(data)
 		if eval_op is None:
 			fetches = [model.cost, model._final_state_fw, model._final_state_bw]
@@ -498,24 +479,18 @@ def get_result(session, model, data, eval_op, verbose, epoch_size):
 	num_steps = 30
 	collect = []
 	for i in range(epoch_size):
-		print(i)
-		# 保证有序性
-		# x, y = get_feeddata(session, i, data, batch_size, num_steps)
 		x, y, z = session.run(data)
-		# print("x is ===")
-		# print(x)
 		fetches = [model.tags_scores, model.l, model.trans, model.input_data]
 		feed_dict = {}
 		feed_dict[model.input_data] = x
 		feed_dict[model.targets] = y
 		tags_scores, length, trans, input_data = session.run(fetches, feed_dict)
 		batch_paths = decode(tags_scores ,length ,trans)
+		
 		# # 矩阵合并
 		# # 将原单词取回 避免多线程的打乱
-		# print("hard_split mode...")
-
 		if(z.shape[0]!=9):
-			print("suck me ")
+			print()
 			# csvwriter.writerows(np.column_stack((input_data, y, batch_paths, z)))
 		else:
 			collect.append(np.column_stack((input_data, y, batch_paths)))
@@ -533,10 +508,8 @@ def main(argv=None):
 	begin = datetime.datetime.now()
 	if not FLAGS.data_path:
 		raise ValueError("Must set --data_path to PTB data directory")
-	print(FLAGS.data_path)
-	# 获取原始数据
-	# raw_data = reader.ptb_raw_data(FLAGS.data_path)
-	# train_data, valid_data, test_data, _ = raw_data
+
+	# Optain training data
 	train_data, valid_data, test_data = get_rawdata(FLAGS.data_path)
 
 
@@ -555,22 +528,19 @@ def main(argv=None):
 	
 
 	test_data_len = len(test_data)
-	a =[]
-	for i in range(test_data_len):
-		a.append("+".join(str(test_data[i][:30])))
-	print("all test data len is %d" % len(a))
-	print("all unique data len is %d" % len(set(a)))
 	test_batch_len = test_data_len // eval_config.batch_size
-	# test_epoch_size = (test_batch_len - 1) // EVAL_NUM_STEP
 
 	with tf.Graph().as_default():
+		
 		initializer = tf.random_uniform_initializer(-config.init_scale, config.init_scale)
 		with tf.name_scope("Train"):
 			with tf.variable_scope("Model", reuse=None, initializer=initializer):
 				m = PTBModel(is_trainning=True, config=config)
+		
 		with tf.name_scope("Valid"):
 			with tf.variable_scope("Model", reuse=True, initializer=initializer):
 				mValid = PTBModel(is_trainning=False, config=eval_config)
+		
 		with tf.name_scope("Test"):
 			with tf.variable_scope("Model", reuse=True, initializer=initializer):
 				mTest = PTBModel(is_trainning=False, config=eval_config)
@@ -581,7 +551,6 @@ def main(argv=None):
 		eval_queue = reader.ptb_producer(valid_data, eval_config.batch_size, eval_config.num_steps)
 		test_queue = reader.ptb_producer(test_data, eval_config.batch_size, eval_config.num_steps)
 
-		test_queue2 = reader.ptb_producer(test_data, eval_config.batch_size, eval_config.num_steps)
 		print("queue building finish")
 		sv = tf.train.Supervisor(logdir=FLAGS.save_path)
 		with sv.managed_session() as session:
@@ -596,20 +565,20 @@ def main(argv=None):
 
 				valid_perplexity = run_epoch(session, mValid, eval_queue, None, False, valid_batch_len,"hey")
 				print("Epoch: %d Validation Perplexity: %.3f" % (i+1, valid_perplexity))
+			
 			test_perplexity = run_epoch(session, mTest, test_queue, None, False, test_batch_len)
 			print("Final Test Perplexity: %.3f" % test_perplexity)
 			
-			# get_result(session, mTest, test_queue2, None, False, test_batch_len)
 
 			coord.request_stop()
 			coord.join(threads)
 			end = datetime.datetime.now()
-			print("======")
-			print(end-begin)
+			print("Training cost is %s", end-begin)
 
-			b = os.path.join(os.getcwd(), FLAGS.save_path)
+			
 			if FLAGS.save_path:
-				print("Saving model to %s." % b)
+				real_save_path = os.path.join(os.getcwd(), FLAGS.save_path)
+				print("Saving model to %s." % real_save_path)
 				sv.saver.save(session, b, global_step=sv.global_step)
 	
 
