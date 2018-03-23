@@ -3,7 +3,7 @@
 
 ---
 ### Source code for identifier splitting via CNN-BiLSTM-CRF 
-####(implemented by ```Tensorflow 1.4```)
+#### (implemented by ```Tensorflow 1.4```)
 
 ### User Guides:
 1. **Prerequisites**: You must have *Tensorflow* and *Python 3+* installed.
