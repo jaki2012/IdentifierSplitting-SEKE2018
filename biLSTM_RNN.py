@@ -19,9 +19,9 @@ from tensorflow.contrib.layers.python.layers import initializers
 
 cf = configparser.ConfigParser()
 cf.read('config.ini')
-# EXPERI_DATA_FILE = cf.get("bt11_hs_data", "experi_data_path")
-EXPERI_DATA_FILE = "experi_data10/test/"
-CODED_FILE = cf.get("binkley_nhs_data", "coded_file")
+EXPERI_DATA_FILE = cf.get("final_training_data", "experi_data_path")
+# EXPERI_DATA_FILE = "experi_data10/test/"
+CODED_FILE = cf.get("final_training_data", "coded_file")
 
 flags = tf.flags
 logging = tf.logging
@@ -33,6 +33,7 @@ flags.DEFINE_string(
 flags.DEFINE_integer(
 	"use_crf", 1,
 	"whether to use crf layer. default yes")
+flags.DEFINE_string("save_path", None, "Model output directory.")
 
 flags.DEFINE_integer(
 	"sample_size", 2000,
@@ -96,19 +97,17 @@ def get_rawdata(path):
 	df = pd.read_csv(path, header=None)
 	data = df.values
 	data_len = len(data)
-	train_len = int(data_len * 0.17)
-	valid_len = int(data_len * 0.05)
-	# train_len = 5344
-	# valid_len = 142
-	test_len = data_len - train_len - valid_len - 1000
+	train_len = int(data_len)
+	valid_len = int(data_len*0.05)
+	test_len = int(data_len*0.05)
 	if FLAGS.train_option == "pure_corpus":
 		# 配置一
 		random_ind = list(range(0, len(data)))
 		if FLAGS.shuffle:
 			random.shuffle(random_ind)
-		train_data = data[random_ind[:train_len], :]
-		valid_data = data[random_ind[train_len:train_len+valid_len], :]
-		test_data = data[random_ind[:1], :]
+		train_data = data[random_ind[:100], :]
+		valid_data = data[random_ind[10:20], :]
+		test_data = data[random_ind[20:30], :]
 	elif FLAGS.train_option == "mixed":
 		# 配置二
 		train_data = data[:744, :]
@@ -434,7 +433,7 @@ class SmallConfig(object):
 	lr_decay = 0.5
 	batch_size = 20
 	# default 100
-	vocab_size = 65
+	vocab_size = 66
 	num_classes = 5
 
 def decode(logits, lengths, matrix):
@@ -469,16 +468,21 @@ def run_epoch(session, model, data, eval_op, verbose, epoch_size, Name="NOFOCUS"
 	iters = 0
 	state_fw = session.run(model.initial_state_fw)
 	state_bw = session.run(model.initial_state_bw)
-	# for step, (x, y) in enumerate(reader.ptb_iterator(data, model.batch_size, model.num_steps)):
 	# for i in range(epoch_size):
 	for i in range(1):
 		# x,y = get_feeddata(session, i, data, model.batch_size, model.num_steps)
 		x, y, _ = session.run(data)
-		fetches = [model.cost, model._final_state_fw, model._final_state_bw, eval_op]
+		if eval_op is None:
+			fetches = [model.cost, model._final_state_fw, model._final_state_bw]
+		else:
+			fetches = [model.cost, model._final_state_fw, model._final_state_bw, eval_op]
 		feed_dict = {}
 		feed_dict[model.input_data] = x
 		feed_dict[model.targets] = y
-		cost, state_fw, state_bw, _ = session.run(fetches, feed_dict)
+		if eval_op is None:
+			cost, state_fw, state_bw = session.run(fetches, feed_dict)
+		else:
+			cost, state_fw, state_bw, _ = session.run(fetches, feed_dict)
 		costs += cost
 		iters += model.num_steps
 		if verbose and i % 100 == 0:
@@ -491,6 +495,7 @@ def get_result(session, model, data, eval_op, verbose, epoch_size):
 	csvwriter= csv.writer(result_csv)
 	batch_size = 20
 	num_steps = 30
+	collect = []
 	for i in range(epoch_size):
 		# 保证有序性
 		# x, y = get_feeddata(session, i, data, batch_size, num_steps)
@@ -504,14 +509,15 @@ def get_result(session, model, data, eval_op, verbose, epoch_size):
 		# # 矩阵合并
 		# # 将原单词取回 避免多线程的打乱
 		# print("hard_split mode...")
+
 		if(z.shape[0]!=9):
 			print("suck me ")
 			csvwriter.writerows(np.column_stack((input_data, y, batch_paths, z)))
 		else:
+			collect.append(np.column_stack((input_data, y, batch_paths)))
 			csvwriter.writerows(np.column_stack((input_data, y, batch_paths)))
 	print("%s finished and saved" % result_csv_name)
-	c = tf.reshape(batch_paths, [1, -1])
-	return c
+	return collect
 
 def get_config():
 	if FLAGS.model == "small":
@@ -539,13 +545,9 @@ def main(argv=None):
 	# 计算一个epoch需要训练的次数
 	train_data_len = len(train_data)
 	train_batch_len = train_data_len // config.batch_size
-	# train_epoch_size = (train_batch_len - 1) // TRAIN_NUM_STEP
-	# print("train batch len: %d" % train_batch_len)
-
 
 	valid_data_len = len(valid_data)
 	valid_batch_len = valid_data_len // eval_config.batch_size
-	# valid_epoch_size = (valid_batch_len - 1) // EVAL_NUM_STEP
 	
 
 	test_data_len = len(test_data)
@@ -557,15 +559,19 @@ def main(argv=None):
 	test_batch_len = test_data_len // eval_config.batch_size
 	# test_epoch_size = (test_batch_len - 1) // EVAL_NUM_STEP
 
-	with tf.Graph().as_default(), tf.Session() as session:
+	with tf.Graph().as_default():
 		initializer = tf.random_uniform_initializer(-config.init_scale, config.init_scale)
-		with tf.variable_scope("model", reuse=None, initializer=initializer):
-			m = PTBModel(is_trainning=True, config=config)
-		with tf.variable_scope("model", reuse=True, initializer=initializer):
-			mValid = PTBModel(is_trainning=False, config=eval_config)
-			mTest = PTBModel(is_trainning=False, config=eval_config)
+		with tf.name_scope("Train"):
+			with tf.variable_scope("Model", reuse=None, initializer=initializer):
+				m = PTBModel(is_trainning=True, config=config)
+		with tf.name_scope("Valid"):
+			with tf.variable_scope("Model", reuse=True, initializer=initializer):
+				mValid = PTBModel(is_trainning=False, config=eval_config)
+		with tf.name_scope("Test"):
+			with tf.variable_scope("Model", reuse=True, initializer=initializer):
+				mTest = PTBModel(is_trainning=False, config=eval_config)
 
-		tf.global_variables_initializer().run()
+		# tf.global_variables_initializer().run()
 
 		train_queue = reader.ptb_producer(train_data, config.batch_size, config.num_steps)
 		eval_queue = reader.ptb_producer(valid_data, eval_config.batch_size, eval_config.num_steps)
@@ -573,44 +579,35 @@ def main(argv=None):
 
 		test_queue2 = reader.ptb_producer(test_data, eval_config.batch_size, eval_config.num_steps)
 		print("queue building finish")
+		sv = tf.train.Supervisor(logdir=FLAGS.save_path)
+		with sv.managed_session() as session:
+			coord = sv.coord
+			threads = sv.start_queue_runners(sess=session)
+			for i in range(config.max_max_epoch):
+				lr_decay = config.lr_decay ** max(i - config.max_epoch, 0.0)
+				m.assign_lr(session, config.learning_rate * lr_decay)
 
-		coord = tf.train.Coordinator()
-		threads = tf.train.start_queue_runners(sess=session, coord=coord)
-		for i in range(config.max_max_epoch):
-			lr_decay = config.lr_decay ** max(i - config.max_epoch, 0.0)
-			m.assign_lr(session, config.learning_rate * lr_decay)
+				print("In iteration: %d" % (i+1))
+				run_epoch(session, m, train_queue, m.train_op, True, train_batch_len)
 
-			print("In iteration: %d" % (i+1))
-			run_epoch(session, m, train_queue, m.train_op, True, train_batch_len)
+				valid_perplexity = run_epoch(session, mValid, eval_queue, None, False, valid_batch_len,"hey")
+				print("Epoch: %d Validation Perplexity: %.3f" % (i+1, valid_perplexity))
+			# test_perplexity = run_epoch(session, mTest, test_queue, tf.no_op(), False, test_batch_len)
+			# print("Final Test Perplexity: %.3f" % test_perplexity)
+			
+			get_result(session, mTest, test_queue2, None, False, test_batch_len)
 
-			valid_perplexity = run_epoch(session, mValid, eval_queue, tf.no_op(), False, valid_batch_len,"hey")
-			print("Epoch: %d Validation Perplexity: %.3f" % (i+1, valid_perplexity))
-		# test_perplexity = run_epoch(session, mTest, test_queue, tf.no_op(), False, test_batch_len)
-		# print("Final Test Perplexity: %.3f" % test_perplexity)
-		
-		k = get_result(session, mTest, test_queue2, tf.no_op(), False, test_batch_len)
+			coord.request_stop()
+			coord.join(threads)
+			end = datetime.datetime.now()
+			print("======")
+			print(end-begin)
 
-		coord.request_stop()
-		coord.join(threads)
-		end = datetime.datetime.now()
-		print("======")
-		print(end-begin)
-
-		b = os.path.join(os.getcwd(), 'model_save1/1')
-		# if FLAGS.save_path:
-			# print("Saving model to %s." % b)
-			# sv.saver.save(session, b, global_step=sv.global_step)
-		builder = tf.saved_model.builder.SavedModelBuilder(b)
-		inputs = {'input_x': tf.saved_model.utils.build_tensor_info(mTest.input_data)}
-
-		# y 为最终需要的输出结果tensor 
-		outputs = {'output' : tf.saved_model.utils.build_tensor_info(k)}
-
-		signature = tf.saved_model.signature_def_utils.build_signature_def(inputs, outputs, 'test_sig_name')
-		# builder.add_meta_graph_and_variables(session, [tf.saved_model.tag_constants.SERVING])
-		builder.add_meta_graph_and_variables(session, [tf.saved_model.tag_constants.SERVING], {'test_signature':signature})
-
-		builder.save()
+			b = os.path.join(os.getcwd(), FLAGS.save_path)
+			if FLAGS.save_path:
+				print("Saving model to %s." % b)
+				sv.saver.save(session, b, global_step=sv.global_step)
+	
 
 if __name__ == "__main__":
 	tf.app.run()
