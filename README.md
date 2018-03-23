@@ -1,17 +1,16 @@
-#Dear reviewers and readers,
+# Dear reviewers and readers,
+# Sorry to show a messy project right now..
+# But we will tidy it up as soon as possible, before March 25.
 
-Sorry to show a messy project right now..
-But i will tidy it up as soon as possible, before March 25.
+---
+## Source code for identifier splitting via CNN-BiLSTM-CRF
+### implemented by ```Tensorflow 1.4```
 
-
-### Source code for identifier splitting via CNN-BiLSTM-CRF
-## implemented by ```Tensorflow 1.4```
-
-
-### User Guide:
-1. Prerequisites: You must have Tensorflow and Python 3+ installed.
-
-2. If you want to infer a identifier splitting with our ready-made package, just use the command line below:
+---
+### User Guides:
+1. **Prerequisites**: You must have *Tensorflow* and *Python 3+* installed.
+<br /> With regard to Tensorflow, we strongly recommend you install *Tensorflow 1.4* to avoid any imcompatibility.
+2. If you want to infer a identifier splitting with our **ready-made package**, just use the command line below:
 ```
 python is_inference.py identifier
 ```
@@ -20,26 +19,24 @@ for more than one identifiers, use command line in the form of
 python is_inference.py identifier1,identifier2,...,identifierN
 ```
 or for a csv file consisting of plenty of identifiers
-
 ```
 python is_inference.py -f idenntifiers.csv
 ```
 
-3. To adpot or revise our code, we provide you some indications of related files:
+3. To **adpot or revise our code**, we provide you some indications of related files:
+#### ```Model/model.ckpt``` stores the trained-model, in a Tensorflow model(. ckpt) format
+#### ```Oracles/``` stores all the oracles used in our study, namely *Binkley*, *BT11*, *Jhotdraw* and *Lynx*
+#### ```is_modeltraining.py``` is the most important file, which contains the core code to train our CNN-BiLSTM-CRF Model.
+
+
+
+
 ---
-```
-### 1 ```idsplit_train.py``` 用于将oracle训练集做预处理，将其变成序列标注所需要的tag形式
-biLSTM
-```
-
-
-
-
 ### Training Enviroment:
 1. Macbook pro 2015, 2.5 GHz Intel Core i7, CPU built tensorflow 1.4 - Jaki's PC
 2. Nvidia GTX GEForce 1060, Ubuntu 16.04, docker of GPU built tensorflow 1.4 - Rainlf's PC
 3. Nvidia GTX 970X, CUDA 8.0, Ubuntu 14.04, cNN6.1, GPU built tensorflow 1.4 - Robbie's pC
-4. Alibaba ecs.gn5-c4g1.xlarge（4核 30GB，GPU计算型 gn5）	1 * NVIDIA P100
+4. Alibaba ecs.gn5-c4g1.xlarge（1 * NVIDIA P100, 4核 30GB，GPU计算型 gn5）	
 
 ### Sub-Project related to this project
 1. TRIS（有向图、最短路径—Dijkstra算法）
