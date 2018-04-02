@@ -16,7 +16,7 @@ or for a csv file consisting of plenty of identifiers
 ```
 python is_inference.py -f idenntifiers.csv --save_path Model/model.ckpt
 ```
---save_path specify the location of trained model file. We provide a netdisk download-link of [our model](https://pan.baidu.com/s/1p8UvdL2MPq9sDwY3oH2eWg), because it exceeds the file size limit of Github. The download password is *s923*.
+--save_path specify the location of trained model file. We provide a netdisk [download-link](https://pan.baidu.com/s/1p8UvdL2MPq9sDwY3oH2eWg) of our model, because it exceeds the file size limit of Github. The download password is *s923*.
 
 3. An example test case is shown below:
 ```
@@ -45,7 +45,7 @@ printluck                       ==>  print-luck
 * GenTest
 	We implement GenTest by invocating the [web service on-line](http://splitit.cs.loyola.edu/web-service.html) provided by Binkley et al. The programming language of each identifier sample in the Binkley dataset is explicitly recorded. Further, all the identifier samples in the BT11 dataset are known to be extracted from Java projects. Thus, we can optimally use GenTest by indicating the language of each identifier when we invoke the http requests. 
 * LIDS
-	We implement LIDS by using its [command-line interface tool](https://github.com/nunorc/Lingua-IdSplitter) written in Perl language. The dependent Perl module is also available in the cpan repository\footnote{http://search.cpan.org/}.
+	We implement LIDS by using its [command-line interface tool](https://github.com/nunorc/Lingua-IdSplitter) written in Perl language. The dependent Perl module is also available in the [cpan repository](http://search.cpan.org/).
 * INTT
 	INTT is actually a [Java library](http://oro.open.ac.uk/28352/) that implements an approach to enable the automated tokenization of identifier names. It is implemented by Butler et al. and also made available in the [maven repository](http://mvnrepository.com/artifact/uk.org.facetus/intt).
 
